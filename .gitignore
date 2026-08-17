@@ -12,7 +12,7 @@ Thumbs.db
 .env.*
 !/.env.example
 # Never commit user references or generated private pets
-references/
+/references/
 runs/
 generated/
 private-assets/
