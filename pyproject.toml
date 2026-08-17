@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pocketmen-with-you"
-version = "0.1.0"
-description = "Skill-first utilities for turning reference images into high-fidelity Codex companion pets."
+version = "0.3.0"
+description = "Local-first Codex companion generator with optional open-weight neural image editing for ImageGen-like identity-preserving pet creation."
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [{name = "six-nut"}]
-dependencies = ["Pillow>=10.4,<13"]
-keywords = ["codex", "pet", "agent-skill", "spritesheet", "image-generation", "companion"]
+dependencies = ["Pillow>=10.4,<13", "numpy>=2.0,<3", "opencv-python-headless>=4.10,<5"]
+keywords = ["codex", "pet", "agent-skill", "spritesheet", "local-ai", "flux2", "qwen-image", "companion"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "License :: OSI Approved :: MIT License",
@@ -22,6 +22,16 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
+neural = [
+  "torch>=2.6",
+  "diffusers>=0.39.0,<0.40",
+  "transformers>=4.57",
+  "accelerate>=1.10",
+  "safetensors>=0.5",
+  "huggingface_hub>=0.34",
+  "sentencepiece>=0.2",
+  "protobuf>=5",
+]
 dev = ["pytest>=8.3,<10", "ruff>=0.9,<1"]
 
 [project.scripts]
@@ -35,5 +45,5 @@ Issues = "https://github.com/six-nut/PocketMen-with-you/issues"
 where = ["src"]
 
 [tool.ruff]
-line-length = 100
+line-length = 110
 target-version = "py310"

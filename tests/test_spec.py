@@ -1,3 +1,4 @@
+from pocketmen import __version__
 from pocketmen.spec import ATLAS_HEIGHT, ATLAS_WIDTH, CELL_HEIGHT, CELL_WIDTH, ROW_SPECS
 
 
@@ -8,3 +9,7 @@ def test_geometry():
         "idle", "running-right", "running-left", "waving", "jumping", "failed", "waiting", "running", "review"
     ]
     assert [n for _, n in ROW_SPECS] == [6, 8, 8, 4, 5, 8, 6, 6, 6]
+
+
+def test_package_version():
+    assert __version__ == "0.3.0"

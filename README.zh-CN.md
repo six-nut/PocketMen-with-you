@@ -1,60 +1,163 @@
 <div align="center">
-  <img src="assets/logo-512.png" width="132" alt="PocketMen with You 原创红黄陪伴胶囊标志" />
+  <img src="assets/logo-512.png" width="132" alt="PocketMen with You" />
   <h1>PocketMen with You</h1>
-  <p><strong>只需上传至少两张参考图，就把重要的人、宠物或原创幻想生物做成一直陪着你的 Codex 高清萌宠。</strong></p>
+  <p><strong>上传至少两张照片，在本地生成一直陪着你的高清 Codex 萌宠。</strong></p>
+  <p><strong>v0.3：Neural Local Studio。默认不依赖 hatch-pet，不需要 OPENAI_API_KEY。</strong></p>
 </div>
 
 [English](README.md)
 
-## 项目定位
+## v0.3 解决了什么
 
-PocketMen with You 是一个面向 Codex 的 **Skill-first** 开源项目。它不把“生成一张可爱图片”当作终点，而是把参考图识别、身份特征锁定、九类动作生成、透明图集封装、动态预览、视觉 QA 与本地安装组成一条可复用工作流。
+v0.2 的本地引擎很稳定，但本质上只能对已有像素做抠图、缩放、旋转与变形，因此无法真正“想象”照片里没有出现的新姿态。
 
-适合四类常用风格：
-
-- `hero-chibi`：帅气又 Q 弹的卡通人物；
-- `soft-real`：尽量忠实还原毛色、眼睛、体型和项圈的小动物；
-- `plush`：柔软玩偶/吉祥物；
-- `capsule-creature`：原创幻想生物 + 项目自有红黄陪伴胶囊；
-- `auto`：自动选择。
-
-## 三步使用
-
-1. 在 Codex 中打开本仓库；
-2. 上传 **至少两张图片**；
-3. 输入：
+v0.3 把 Local Engine 升级成了**真正的本地生成式图像引擎**：当机器具备合适的 NVIDIA GPU 时，PocketMen 会使用开放权重、多参考图像编辑模型生成统一的角色母版和九类动作关键姿态，然后再由自己的透明背景处理、微动画、图集组装和 QA 管线完成 Codex Pet。
 
 ```text
-使用 $pocketmen-with-you，根据我上传的参考图生成一只 Codex 陪伴宠物。
-风格 auto，尽量忠实保持身份特征，通过视觉 QA 后自动安装。
+至少2张参考图
+    ↓
+Codex 视觉识别并建立 Identity Lock
+    ↓
+硬件检测
+    ↓
+Neural Local Studio
+    ├─ 默认：FLUX.2 [klein] 4B
+    └─ Identity-Max：Qwen-Image-Edit-2511
+    ↓
+统一母版 + 九类动作关键姿态
+    ↓
+纯色背景去除 / 透明边缘净化
+    ↓
+稳定微动画
+    ↓
+8×9 / 1536×1872 Codex 图集
+    ↓
+验证、Contact Sheet、GIF
+    ↓
+pet.json + spritesheet.webp
 ```
 
-仓库自带 `.agents/skills/pocketmen-with-you`，Codex 会从仓库级 skill 路径发现它。
+如果本地硬件或依赖不足，会自动退回 v0.2 的确定性引擎，而不是要求用户配置 OpenAI API Key。
 
-## 为什么至少两张图
+## 两套神经引擎
 
-单张图很容易把偶然的姿态、光照、遮挡或表情当成固定特征。PocketMen 要求至少两张，是为了先抽取跨图片稳定的身份锚点：人物的发型与脸部轮廓、猫狗的毛色与眼睛、固定配饰、体态、主色和气质，再把这些锚点带进九类动作。
+### FLUX.2 [klein] 4B —— 默认推荐
 
-## Codex 宠物图集
+适合大部分用户：
 
-项目验证：8 列 × 9 行、单格 192 × 208 px、最终 1536 × 1872 px，九行依次为 `idle / running-right / running-left / waving / jumping / failed / waiting / running / review`。未使用单元格必须完全透明。
+- 支持本地文生图与图像编辑；
+- 支持多参考图；
+- Apache-2.0；
+- 面向消费级 NVIDIA GPU；
+- PocketMen 在兼容硬件上自动优先选择。
 
-## 关于精灵球视觉
+### Qwen-Image-Edit-2511 —— Identity-Max
 
-为了让项目具有“口袋伙伴/捕捉陪伴”的记忆点，本项目使用**原创红黄陪伴胶囊**：采用红黄斜向分区、深色斜带和爱心/伙伴核心图形，刻意避免复制现有商业角色或精灵球的具体商标外观。
+用于人物、宠物、多人/多主体等身份一致性要求更高的情况：
 
-## 发布到 GitHub
+- 支持多图编辑；
+- 强调人物/角色一致性和新视角编辑；
+- Apache-2.0；
+- 体量更大，建议高显存设备与 CPU offload。
 
-本包已预设目标账户 `six-nut` 与仓库 `PocketMen-with-you`。Windows 双击：
+PocketMen 不把 FLUX.2 [dev] 作为公开项目默认后端，因为其模型许可证为非商业用途许可。
+
+## 三档质量
+
+- `draft`：只生成一个高质量母版，九类动作由本地微动画完成；
+- `balanced`：母版 + 各状态关键姿态，质量/速度平衡；
+- `max`：九种状态全部独立生成关键姿态，最大化动作自然度。
+
+## 用户实际只需要这样做
+
+上传至少两张图片，然后告诉 Codex：
 
 ```text
-PUBLISH_GITHUB.bat
+使用 $pocketmen-with-you 根据这些图片制作并安装一个 Codex 宠物。
+我的机器支持时优先使用 Neural Local Studio。
+风格：hero-chibi。
+主体：person。
+质量：max。
+严格保持人物身份，不要调用 hatch-pet，也不要要求 OPENAI_API_KEY。
 ```
 
-脚本会先检查 `gh auth status`，确认当前 GitHub CLI 登录的是 `six-nut`，再创建公开仓库、推送 `main`、写入 Topics 与标签。不会读取或打印 GitHub Token。
+Skill 会直接利用 Codex 本身对上传图片的视觉理解，把稳定特征整理为 `identity-notes`，再交给本地生成引擎。
 
-发布后，建议把 `assets/social-preview.png` 手动上传为 GitHub Social preview。
+## 本地命令
 
-## 许可
+检测硬件：
 
-MIT。项目与 Nintendo、The Pokémon Company、Game Freak、OpenAI、GitHub 均无从属或官方关联。
+```bash
+pocketmen doctor
+```
+
+自动选择：
+
+```bash
+pocketmen create \
+  --reference photo-1.jpg \
+  --reference photo-2.jpg \
+  --name "小黑" \
+  --subject-type animal \
+  --style soft-real \
+  --engine auto \
+  --quality balanced \
+  --output ./pocketmen-output \
+  --install
+```
+
+最高质量默认模型：
+
+```bash
+pocketmen create ... --engine neural --backend flux2-klein-4b --quality max
+```
+
+身份一致性优先：
+
+```bash
+pocketmen create ... --engine neural --backend qwen-image-edit-2511 --quality max
+```
+
+## 一键安装
+
+```text
+INSTALL_SKILL.bat
+```
+
+安装器会把 Skill 放入 `~/.agents/skills/pocketmen-with-you`，并创建独立虚拟环境；Windows 上还会检测 NVIDIA 显存，兼容机器会自动安装 Neural Local Studio 依赖。
+
+希望提前下载并缓存默认模型时：
+
+```text
+PREPARE_NEURAL_ENGINE.bat
+```
+
+Identity-Max：
+
+```text
+PREPARE_IDENTITY_MAX.bat
+```
+
+模型权重保存在正常 Hugging Face 缓存中，不会被塞进 GitHub 仓库。
+
+## “无限接近 ImageGen”应该怎样理解
+
+v0.3 的目标不是声称某个开放权重模型在所有任务上等于闭源前沿模型，而是针对 **“2+张照片 → 统一身份 → 九类萌宠动作 → Codex 图集”** 这一窄任务把差距尽量压小：
+
+- 多参考身份锚定；
+- 独立动作关键姿态生成；
+- 统一风格母版；
+- 强约束提示词；
+- 固定背景与本地透明化；
+- 微动画稳定器；
+- 严格图集 QA。
+
+因此，人物挥手、真实奔跑、动物抬爪、跳跃、Q版重绘、主人+宠物等以前无法靠简单变形完成的动作，现在能由本地模型真正生成。对于复杂世界知识、文字渲染和极复杂多物体场景，和 GPT Image 2 仍可能存在差距。
+
+## 隐私
+
+原始私人照片默认只在本机处理，不会被自动提交到 GitHub 或 Release。最终 Codex 安装包只包含 `pet.json` 和 `spritesheet.webp`。
+
+## License
+
+PocketMen 本身采用 MIT；可选模型保持各自许可证，项目只引用、不再分发模型权重。

@@ -1,7 +1,13 @@
-# Open this folder in Codex
+# Start with Codex
 
-Then send this single prompt:
+Read `AGENTS.md`, `README.md`, `README.zh-CN.md`, `docs/neural-local-engine.md`, and `UPGRADE_WITH_CODEX.md` before making repository changes.
 
-```text
-Read AGENTS.md and prepare this repository for public launch as six-nut/PocketMen-with-you. Run the local tests and security/privacy checks first. If GitHub CLI is authenticated as six-nut and the target repo is safe to create, publish it with the bundled bootstrap script, configure topics/labels, create v0.1.0, and report anything that still needs a manual GitHub UI step. Do not print or request tokens and do not upload private reference images.
-```
+If publishing for `six-nut`:
+
+- verify GitHub authentication first;
+- preserve history if the repository already exists;
+- never force-push unrelated work;
+- never commit users' private reference photos;
+- do not bundle neural model weights;
+- run tests and compile checks;
+- publish release `v0.3.0` only after the bundled project passes.

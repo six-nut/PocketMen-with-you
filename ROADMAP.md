@@ -1,25 +1,26 @@
 # Roadmap
 
-## v0.1 — Skill-first launch
-- 2+ image intake
-- five style presets
-- hatch-pet orchestration
-- local atlas validator/contact sheet
-- one-click pet installer
-- GitHub bootstrap package
+## v0.3 — Neural Local Studio ✅
 
-## v0.2 — Community gallery
-- opt-in synthetic example gallery
-- preset benchmark pack
-- visual regression fixtures
-- pet-package metadata schema
+- Commercial-friendly local multi-reference editing backend.
+- Identity-aware subject prompt compiler.
+- State-specific neural key poses + stable deterministic micro-animation.
+- Hardware doctor and one-click neural runtime preparation.
 
-## v0.3 — Plugin distribution
-- package the stable skill for installable plugin distribution
-- optional shareable gallery connector, with privacy-first defaults
+## v0.4 — Identity QA
 
-## v1.0 — Companion studio
-- guided desktop workflow
-- multiple interacting companions
-- preset marketplace with provenance/licensing metadata
-- localization and accessibility review
+- Optional local visual embedding QA for automatic identity-drift scoring.
+- Automatic one-row repair when a generated state drifts.
+- Better human-face and animal-marking consistency metrics.
+
+## v0.5 — Motion Studio
+
+- Pose-guide generation and multi-keyframe state animation.
+- Optical-flow assisted interpolation for selected states.
+- More natural paw/hand/leg motion without identity flicker.
+
+## v1.0
+
+- Stable cross-platform installer.
+- Reproducible model/backend matrix.
+- Public benchmark set with consent-safe synthetic and licensed references.

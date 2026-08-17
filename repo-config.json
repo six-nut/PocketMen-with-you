@@ -1,7 +1,7 @@
 {
   "owner": "six-nut",
   "repo": "PocketMen-with-you",
-  "description": "Turn 2+ reference images into a high-fidelity animated Codex companion \u2014 people, pets, and original capsule creatures.",
+  "description": "Create high-fidelity Codex companions from 2+ photos with local open-weight neural editing and no OpenAI API key.",
   "visibility": "public",
   "topics": [
     "codex",
@@ -17,8 +17,13 @@
     "pet-animation",
     "python",
     "open-source",
-    "companion",
-    "creative-coding"
+    "offline-first",
+    "computer-vision",
+    "local-ai",
+    "flux2",
+    "qwen-image",
+    "image-editing",
+    "neural-rendering"
   ],
-  "release": "v0.1.0"
+  "release": "v0.3.0"
 }

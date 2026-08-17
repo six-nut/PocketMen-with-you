@@ -1,13 +1,14 @@
 # Release checklist
 
-- [ ] `pytest -q` passes
-- [ ] `ruff check .` passes
-- [ ] No private photos, `.env`, tokens or generated personal runs are tracked
-- [ ] README screenshots are synthetic/licensed
-- [ ] Skill name/description still match the workflow
-- [ ] Atlas constants match current Codex documentation
-- [ ] GitHub topics are <= 20 and lowercase/hyphenated
-- [ ] SECURITY.md and license are present
-- [ ] Release tag and changelog agree
-- [ ] Upload `assets/social-preview.png` after repository creation
-- [ ] Review `docs/launch-plan.md` for public launch messaging
+- [ ] `PYTHONPATH=src pytest -q` passes.
+- [ ] `python -m compileall -q src` passes.
+- [ ] `ruff check .` passes in the release environment.
+- [ ] Core/deterministic smoke test succeeds with `OPENAI_API_KEY` unset.
+- [ ] `repo-config.json`, `pyproject.toml`, `CITATION.cff`, README and CHANGELOG say `v0.3.0`.
+- [ ] Skill runtime mirror matches `src/pocketmen`.
+- [ ] Neural dependencies remain optional imports in CI.
+- [ ] No model weights are present in the repository/archive.
+- [ ] No private reference images are present.
+- [ ] Default neural backend license is documented as Apache-2.0.
+- [ ] GitHub topics are lowercase, hyphenated and no more than 20.
+- [ ] Social preview and logo render correctly.

@@ -16,3 +16,6 @@ Thumbs.db
 runs/
 generated/
 private-assets/
+.pocketmen-runs/
+pocketmen-output/
+*.backup-*/

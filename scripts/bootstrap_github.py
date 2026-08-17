@@ -6,12 +6,14 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DESCRIPTION = "Turn 2+ reference images into a high-fidelity animated Codex companion — people, pets, and original capsule creatures."
+DESCRIPTION = "Create high-fidelity Codex companions from 2+ photos with local open-weight neural editing and no OpenAI API key."
 TOPICS = [
     "codex", "openai-codex", "agent-skill", "codex-skill", "desktop-pet", "ai-pet",
     "spritesheet", "image-generation", "multimodal", "character-consistency", "pet-animation",
-    "python", "open-source", "companion", "creative-coding",
+    "python", "open-source", "offline-first", "computer-vision",
+    "local-ai", "flux2", "qwen-image", "image-editing", "neural-rendering",
 ]
+REMOVED_TOPICS = ["companion", "creative-coding", "opencv"]
 LABELS = [
     ("bug", "D73A4A", "Something is not working"),
     ("enhancement", "A2EEEF", "New feature or improvement"),
@@ -111,6 +113,8 @@ def main() -> int:
 
     edit = ["gh", "repo", "edit", full, "--description", DESCRIPTION,
             "--enable-issues=true", "--enable-projects=true", "--delete-branch-on-merge=true"]
+    for topic in REMOVED_TOPICS:
+        edit.extend(["--remove-topic", topic])
     for topic in TOPICS:
         edit.extend(["--add-topic", topic])
     run(*edit)

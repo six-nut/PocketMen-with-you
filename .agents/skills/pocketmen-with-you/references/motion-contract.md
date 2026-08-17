@@ -1,17 +1,19 @@
-# Motion contract
+# Codex animation contract
 
-Every row must be a coherent loop and keep identity stable.
+PocketMen emits a 1536×1872 RGBA WebP atlas with 8 columns × 9 rows and 192×208 cells.
 
-| Row | Frames | Semantic intent |
-|---|---:|---|
-| idle | 6 | breathing, blink, tiny weight shift; no waving/running |
-| running-right | 8 | true rightward locomotion, alternating gait |
-| running-left | 8 | true leftward locomotion, alternating gait |
-| waving | 4 | clear greeting with hand/paw/ear/tail gesture |
-| jumping | 5 | takeoff, rise, apex, descent, recovery; stay in cell |
-| failed | 8 | brief disappointment/awkwardness, then recovery; not injury |
-| waiting | 6 | needs user input; attentive/expectant, distinct from idle |
-| running | 6 | Codex working/processing; typing, reading, thinking, kneading, tool-checking etc.; NOT physical running |
-| review | 6 | deliberate checking/inspection, calm and precise |
+Rows:
 
-Multiple companions should keep their relationship consistent. Prefer contact/overlap and shared action over detached floating decoration.
+1. idle — 6 frames
+2. running-right — 8
+3. running-left — 8
+4. waving — 4
+5. jumping — 5
+6. failed — 8
+7. waiting — 6
+8. running — 6 (Codex actively working, not locomotion)
+9. review — 6
+
+In Neural Local Studio, each row is anchored by a semantic model-generated key pose and then receives subtle deterministic micro-motion. This is preferred over independently generating every frame because independent generations increase identity flicker.
+
+Multiple companions are supported at the *reference/editor* level when a backend can combine them. They must remain a single compact visual unit inside each cell; no subject may cross cell boundaries.

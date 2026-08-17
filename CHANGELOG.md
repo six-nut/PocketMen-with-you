@@ -1,13 +1,17 @@
 # Changelog
 
-All notable changes will be documented here.
+## 0.3.0 — Neural Local Studio
 
-## [0.1.0] - 2026-08-17
+- Replaced the "local means only warps" ceiling with a true local open-weight generative path.
+- Added **FLUX.2 [klein] 4B** as the default neural-local backend when compatible NVIDIA hardware is detected.
+- Added optional **Qwen-Image-Edit-2511** Identity-Max backend for heavier multi-reference identity-sensitive editing.
+- Added hardware detection, `pocketmen doctor`, auto backend selection, quality profiles, subject-aware prompt compilation and chroma-background extraction.
+- Each Codex animation state can now receive its own model-generated semantic key pose; deterministic motion is only used for stable micro-animation between key poses.
+- The normal neural path still requires **no OpenAI API key**, never invokes hatch-pet, and does not call OpenAI ImageGen.
+- Added one-click neural runtime preparation scripts and explicit model/license documentation.
+- Preserved deterministic fallback for CPU-only or low-VRAM machines.
 
-### Added
-- Initial PocketMen Codex skill.
-- 2+ image identity-lock workflow.
-- Hero-chibi, soft-real, plush, capsule-creature and auto presets.
-- Deterministic atlas validator, contact sheet and local installer.
-- GitHub publication bootstrap for `six-nut/PocketMen-with-you`.
-- Original red/yellow companion-capsule branding.
+## 0.2.0 — Local-first
+
+- Removed the hard hatch-pet/ImageGen dependency.
+- Added deterministic local foreground extraction, style transforms, motion synthesis, atlas assembly and validation.
