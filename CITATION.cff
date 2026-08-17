@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+title: PocketMen with You
+message: If you use PocketMen with You in a project or paper, please cite this repository.
+type: software
+authors:
+  - family-names: six-nut
+repository-code: https://github.com/six-nut/PocketMen-with-you
+license: MIT
+version: 0.1.0
+date-released: 2026-08-17

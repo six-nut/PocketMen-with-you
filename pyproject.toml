@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pocketmen-with-you"
+version = "0.1.0"
+description = "Skill-first utilities for turning reference images into high-fidelity Codex companion pets."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "six-nut"}]
+dependencies = ["Pillow>=10.4,<13"]
+keywords = ["codex", "pet", "agent-skill", "spritesheet", "image-generation", "companion"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3,<10", "ruff>=0.9,<1"]
+
+[project.scripts]
+pocketmen = "pocketmen.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/six-nut/PocketMen-with-you"
+Issues = "https://github.com/six-nut/PocketMen-with-you/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

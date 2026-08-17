@@ -1,0 +1,25 @@
+name: Feature request
+description: Suggest a workflow, preset or QA improvement
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: User need
+      description: What should become easier or more reliable?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy / IP
+      options:
+        - label: This proposal does not require publishing private reference photos or unlicensed character assets.
+          required: true

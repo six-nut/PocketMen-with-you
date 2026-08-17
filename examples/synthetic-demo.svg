@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 420">
+<rect width="1000" height="420" rx="32" fill="#f7f9fc"/>
+<text x="50" y="70" font-family="sans-serif" font-size="34" font-weight="700" fill="#111827">Synthetic demo flow</text>
+<g font-family="sans-serif" font-size="22" fill="#111827">
+<rect x="50" y="115" width="190" height="210" rx="24" fill="#fff" stroke="#d8dee8"/><text x="85" y="215">2+ refs</text>
+<rect x="285" y="115" width="190" height="210" rx="24" fill="#fff" stroke="#d8dee8"/><text x="315" y="205">identity</text><text x="330" y="235">lock</text>
+<rect x="520" y="115" width="190" height="210" rx="24" fill="#fff" stroke="#d8dee8"/><text x="550" y="205">9 motion</text><text x="570" y="235">rows</text>
+<rect x="755" y="115" width="190" height="210" rx="24" fill="#fff" stroke="#d8dee8"/><text x="795" y="205">Codex</text><text x="790" y="235">companion</text>
+</g>
+<path d="M245 220h32m200 0h32m200 0h32" stroke="#ef3f48" stroke-width="7" stroke-linecap="round"/>
+</svg>

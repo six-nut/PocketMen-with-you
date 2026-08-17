@@ -1,0 +1,24 @@
+{
+  "owner": "six-nut",
+  "repo": "PocketMen-with-you",
+  "description": "Turn 2+ reference images into a high-fidelity animated Codex companion \u2014 people, pets, and original capsule creatures.",
+  "visibility": "public",
+  "topics": [
+    "codex",
+    "openai-codex",
+    "agent-skill",
+    "codex-skill",
+    "desktop-pet",
+    "ai-pet",
+    "spritesheet",
+    "image-generation",
+    "multimodal",
+    "character-consistency",
+    "pet-animation",
+    "python",
+    "open-source",
+    "companion",
+    "creative-coding"
+  ],
+  "release": "v0.1.0"
+}

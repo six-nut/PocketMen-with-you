@@ -1,0 +1,9 @@
+interface:
+  display_name: "PocketMen with You"
+  short_description: "Turn 2+ reference images into a faithful Codex companion pet."
+  icon_small: "./assets/logo-small.svg"
+  icon_large: "./assets/logo-large.png"
+  brand_color: "#EF3F48"
+  default_prompt: "Use $pocketmen-with-you to turn my 2+ reference images into a faithful Codex companion, run QA, and install it when it passes."
+policy:
+  allow_implicit_invocation: true

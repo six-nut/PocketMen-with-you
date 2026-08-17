@@ -1,0 +1,27 @@
+name: Bug report
+description: Report a reproducible PocketMen problem
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Please remove personal reference images and secrets before posting logs."
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: Commands, synthetic fixtures, or sanitized paths only.
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform / Codex interface
+    validations:
+      required: true
