@@ -2,6 +2,9 @@
 
 This repository intentionally does **not** bundle private personal-reference photos or generated pets derived from them.
 
+Read the [privacy-safe demo contribution guide](../docs/demo-contributions.md) before adding public
+example media.
+
 For public demos, use synthetic or explicitly redistributable references. A good demo should show:
 
 1. at least two reference views;

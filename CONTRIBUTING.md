@@ -29,6 +29,12 @@ ruff check .
 - Better docs or translations.
 - Cross-platform installation improvements.
 
+## Demo contributions
+
+Public examples must use synthetic, owned, public-domain, or explicitly redistributable material.
+Follow the [privacy-safe demo contribution guide](docs/demo-contributions.md) and include provenance,
+license information, QA evidence, and deterministic validation output.
+
 ## Pull requests
 
 Keep PRs focused. Include:
