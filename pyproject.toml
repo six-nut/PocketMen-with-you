@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [{name = "six-nut"}]
-dependencies = ["Pillow>=10.4,<13", "numpy>=2.0,<3", "opencv-python-headless>=4.10,<5"]
+dependencies = ["Pillow>=10.4,<13", "numpy>=2.0,<3", "opencv-python-headless>=4.10,<6"]
 keywords = ["codex", "pet", "agent-skill", "spritesheet", "local-ai", "flux2", "qwen-image", "companion"]
 classifiers = [
   "Development Status :: 3 - Alpha",
