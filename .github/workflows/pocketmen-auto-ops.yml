@@ -2,9 +2,9 @@ name: PocketMen Auto Ops
 
 on:
   schedule:
-    - cron: "30 2 * * 1" # 每周一 02:30 UTC：例行维护
-    - cron: "30 2 * * 4" # 每周四 02:30 UTC：宣发推进
-  workflow_dispatch: {}
+    - cron: "30 2 * * *" # 每天 02:30 UTC：24h 评论更新与状态跟进
+    - cron: "30 2 * * 1" # 每周一 02:30 UTC：例行维护 + 周期报表
+    - cron: "30 2 * * 4" # 每周四 02:30 UTC：社区宣发跟进
 
 permissions:
   contents: read
@@ -18,96 +18,268 @@ jobs:
       - uses: actions/github-script@v8
         with:
           script: |
-            const modeInput = (core.getInput("mode") || "auto").trim().toLowerCase();
-            const day = new Date().getUTCDay();
-            const date = new Date().toISOString().slice(0, 10);
+            const now = new Date();
+            const day = now.getUTCDay();
+            const titleDate = now.toLocaleDateString("en-CA", { timeZone: "UTC" });
+            const nowTs = now.toISOString();
+            const oneDayAgoDate = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+            const sevenDaysAgoDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-            const mode = modeInput === "auto"
-              ? (day === 1 ? "maintenance" : "promotion")
-              : modeInput;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
 
-            const titleDate = new Date().toLocaleDateString("en-CA", { timeZone: "UTC" });
-            const titles = {
-              maintenance: `PocketMen 自动推进 · 例行维护 ${titleDate}`,
-              promotion: `PocketMen 自动推进 · 社区宣发跟进 ${titleDate}`,
-              "health-check": `PocketMen 自动推进 · 健康巡检 ${titleDate}`
+            const labels = {
+              maintenance: "automated-maintenance",
+              followup24h: "auto-24h-followup",
+              promo: "auto-promo-sync",
+              report: "auto-cycle-report"
             };
 
-            const bodies = {
-              maintenance: `## 任务目标
-- 持续观察：本仓库 CI、Issue、PR、讨论区与版本更新状态  
-- 重点动作：补齐近 7 天未处理的待办  
-- 输出：更新本任务并打上 \`status:in-review\` 标签
+            const communityTemplates = `## 多社区同步模板（复制到对应渠道）
 
-### 例行任务清单
-- [ ] 检查最近 7 天内的 issue/PR 评论与修复反馈
-- [ ] 同步功能/演示参数的可复用模板（如未更新则补齐）
-- [ ] 验证 \`README\` / 社区文案是否与当前版本一致
-- [ ] 列出下一个迭代 3 项高优先级任务并指派负责人
-`,
-              promotion: `## 任务目标
-- 继续提升曝光：在目标社区保持稳定更新频率与内容一致性  
-- 重点动作：72h 内更新评论、发布 demo 对比、收集关键指标
-- 结果：本周固定至少 3 条可复用跟进内容
+> 目标：在 24 小时内持续发声并保持参数演示一致
 
-### 跟进内容模板
-- [ ] 在 GitHub 讨论区发布 1 条最新参数实验帖（含示例图链接）  
-- [ ] 同步 1-2 个外部渠道（知乎 / V2EX / Reddit）更新状态  
-- [ ] 更新 README “Try now + Star + Share” 示例与最新链接
-`,
-              "health-check": `## 任务目标
-- 轻量健康巡检：用于确认仓库长期可持续推进状态
-- 周期动作：不需要新增开发，只做运营/质量状态复盘
+### 1) 知乎
+标题示例：\`PocketMen with you：24h 跟进与参数对比\`
 
-### 巡检清单
-- [ ] 最近一次发布后未处理的公开问题是否有回执
-- [ ] GitHub 项目讨论区与 Stars 增长趋势是否异常
-- [ ] 关键文档（\`README\` / \`UPGRADE_WITH_CODEX.md\`）是否可直接复制使用
-- [ ] 若发现高优先级问题，立即新建 issue 并挂载 \`automated-maintenance\`
-`
-            };
+\`\`\`
+今天同步一条 24h 跟进，重点是实测参数复现：
+- 默认后端：FLUX.2-klein-4B
+- 可选后端：Qwen-Image-Edit-2511
+- 关键参数：cfg=1.5, steps=28, seed=42
+请看参数与对比，欢迎评论要求更多参数配置版本。
+\`\`\`
 
-            try {
-              await github.rest.issues.getLabel({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                name: "automated-maintenance"
-              });
-            } catch (error) {
-              if (error.status === 404) {
-                await github.rest.issues.createLabel({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  name: "automated-maintenance",
-                  color: "1F75D2",
-                  description: "自动化运维与长期推进任务"
-                });
-              } else {
+### 2) V2EX
+\`\`\`
+PocketMen with you 24h 跟进
+
+本轮更新：
+- 参数实验：seed/CFG/steps 复现表
+- 场景对比：同一提示词多后端对比
+- 无需 OPENAI_API_KEY，可本地优先
+\`\`\`
+
+### 3) Reddit（r/LocalLLaMA / r/MachineLearning）
+\`\`\`
+Title: PocketMen-with-you open-source local pet animation update (24h follow-up)
+
+I posted a 24h follow-up for PocketMen-with-you:
+- default backend: black-forest-labs/FLUX.2-klein-4B
+- optional Identity-Max: Qwen/Qwen-Image-Edit-2511
+- no OPENAI_API_KEY required for normal generation
+- include one parameter block + one side-by-side result sample
+\`\`\`
+
+`;
+
+            const followupBody = `## 24h 评论更新（请在 24h 内完成）
+
+### 目标
+保持 GitHub 与外部社区的持续讨论，补齐参数复用示例与反馈收口。
+
+### 执行清单（必须打勾）
+- [ ] 在 GitHub 讨论区新增 1 条参数实验评论（含参数表）
+- [ ] 在相关帖子补充 1 条对比结果
+- [ ] 回复 1~2 个用户建议或问题
+- [ ] 同步三处外部社区（知乎/V2EX/Reddit）并记录链接
+
+### 可复用参数区块（复制）
+\`\`\`
+模型：FLUX.2-klein-4B（默认）
+身份增强：Qwen-Image-Edit-2511（可选）
+steps: 28
+cfg: 1.5
+seed: 42
+sampler: 默认设置
+负向提示：blurry, distortion, artifact, jitter
+\`\`\`
+
+### 多社区同步（当天发布）
+${communityTemplates}
+
+### 备注
+- 本 issue 由 GitHub Actions 每 24h 自动创建
+- 完成后请回复时间与结果，例如：\`已发布知乎帖子链接\`
+`;
+
+            const maintenanceBody = `## 例行维护（本周）
+
+### 本周目标
+- 与现有功能一致，减少文档漂移
+- 保持外部反馈闭环
+
+### 任务清单
+- [ ] 检查最近 7 天内 Issue / PR 的处理状态
+- [ ] 对照 docs 与 README 更新关键参数与默认值
+- [ ] 验证 24h 跟进是否闭环（已回复率）
+- [ ] 输出下周 3 个功能优先级
+`;
+
+            const promotionBody = `## 社区宣发推进（72h 周期）
+
+### 目标
+保持稳定曝光，形成 72 小时内的“中文 + 国际社交”同步节奏。
+
+### 执行清单
+- [ ] 1 条 GitHub 讨论区总结帖（含参数清单和效果对比）
+- [ ] 1 条知乎帖子/回答
+- [ ] 1 条 V2EX 帖子
+- [ ] 1 条 Reddit 帖子（r/LocalLLaMA / r/MachineLearning 其一）
+- [ ] 在本 issue 中记录 3 条外部发布链接
+
+### 多社区同步
+${communityTemplates}
+`;
+
+            const weeklyReportTemplate = `## 周期报表（每周）
+
+### 仓库快照
+- 日期：${titleDate}
+- Stars：{{STARS}}
+- Forks：{{FORKS}}
+- Open Issues：{{OPEN_ISSUES}}
+- Open PRs：{{OPEN_PRS}}
+- 24h 新增 Issue：{{NEW_ISSUES_24H}}
+- 24h 新增 PR：{{NEW_PRS_24H}}
+- 7d 新增 Issue：{{NEW_ISSUES_7D}}
+- 7d 新增 PR：{{NEW_PRS_7D}}
+
+### CI 与质量
+- CI 状态：{{CI_STATUS}}
+- 回退与补丁可验证项：{{QUALITY_NOTES}}
+
+### 运营执行情况（需人工补齐）
+- 24h 评论更新是否按时发布：{{FOLLOWUP_DONE_24H}}（是/否）
+- 社区同步链接（知乎/V2EX/Reddit）：{{COMMUNITY_LINKS}}
+- 讨论区响应耗时：{{RESP_TIME}}
+
+### 本周结论
+- 关键词：{{WEEK_KEYWORDS}}
+- 下周重点：{{NEXT_PRIORITY}}
+`;
+
+            function markdownEscape(str) {
+              return String(str || "").replaceAll("|", "\\|");
+            }
+
+            async function ensureLabel(name, color, description) {
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name });
+              } catch (error) {
+                if (error.status === 404) {
+                  await github.rest.issues.createLabel({
+                    owner,
+                    repo,
+                    name,
+                    color,
+                    description
+                  });
+                  return;
+                }
                 throw error;
               }
             }
 
-            const existing = await github.paginate(
-              github.rest.search.issuesAndPullRequests,
-              {
-                q: `repo:${context.repo.owner}/${context.repo.repo} is:issue is:open label:automated-maintenance in:title "${titleDate}"`
-              }
-            );
-
-            const normalizedMode = Object.prototype.hasOwnProperty.call(titles, mode)
-              ? mode
-              : "maintenance";
-
-            const duplicated = existing.some((item) => item.title === titles[normalizedMode]);
-            if (duplicated) {
-              core.info(`Auto-op issue for ${titles[normalizedMode]} already exists, skip.`);
-              return;
+            async function queryCount(q) {
+              const res = await github.rest.search.issuesAndPullRequests({ q });
+              return Number(res.data.total_count || 0);
             }
 
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: titles[normalizedMode],
-              body: bodies[normalizedMode] + `\n\n> 该任务由 GitHub Actions 自动触发，时间戳：${date}\n`,
-              labels: ["automated-maintenance"]
-            });
+            async function issueExistsByTitle(title) {
+              const rows = await github.paginate(github.rest.search.issuesAndPullRequests, {
+                q: `repo:${owner}/${repo} is:issue is:open in:title "${title}"`
+              });
+              return rows.some((item) => item.title === title);
+            }
+
+            async function createIssue(title, body, issueLabels) {
+              await github.rest.issues.create({
+                owner,
+                repo,
+                title,
+                body,
+                labels: issueLabels
+              });
+            }
+
+            async function buildReport() {
+              const repoInfo = (await github.request("GET /repos/{owner}/{repo}", { owner, repo })).data;
+              const openIssues = await queryCount(`repo:${owner}/${repo} is:issue is:open`);
+              const openPRs = await queryCount(`repo:${owner}/${repo} is:pr is:open`);
+              const newIssues24h = await queryCount(`repo:${owner}/${repo} is:issue created:>${oneDayAgoDate}`);
+              const newPRs24h = await queryCount(`repo:${owner}/${repo} is:pr created:>${oneDayAgoDate}`);
+              const newIssues7d = await queryCount(`repo:${owner}/${repo} is:issue created:>${sevenDaysAgoDate}`);
+              const newPRs7d = await queryCount(`repo:${owner}/${repo} is:pr created:>${sevenDaysAgoDate}`);
+
+              const runsRes = await github.request("GET /repos/{owner}/{repo}/actions/workflows/ci.yml/runs", {
+                owner,
+                repo,
+                per_page: 3
+              });
+              const lastRun = runsRes.data.workflow_runs && runsRes.data.workflow_runs[0];
+              const ciStatus = lastRun ? `${lastRun.name} | ${lastRun.conclusion || lastRun.status}` : "No CI run";
+
+              return weeklyReportTemplate
+                .replaceAll("{{STARS}}", markdownEscape(repoInfo.stargazers_count))
+                .replaceAll("{{FORKS}}", markdownEscape(repoInfo.forks_count))
+                .replaceAll("{{OPEN_ISSUES}}", markdownEscape(openIssues))
+                .replaceAll("{{OPEN_PRS}}", markdownEscape(openPRs))
+                .replaceAll("{{NEW_ISSUES_24H}}", markdownEscape(newIssues24h))
+                .replaceAll("{{NEW_PRS_24H}}", markdownEscape(newPRs24h))
+                .replaceAll("{{NEW_ISSUES_7D}}", markdownEscape(newIssues7d))
+                .replaceAll("{{NEW_PRS_7D}}", markdownEscape(newPRs7d))
+                .replaceAll("{{CI_STATUS}}", markdownEscape(ciStatus))
+                .replaceAll("{{QUALITY_NOTES}}", "待补充")
+                .replaceAll("{{FOLLOWUP_DONE_24H}}", "待补充")
+                .replaceAll("{{COMMUNITY_LINKS}}", "待补充")
+                .replaceAll("{{RESP_TIME}}", "待补充")
+                .replaceAll("{{WEEK_KEYWORDS}}", "待补充")
+                .replaceAll("{{NEXT_PRIORITY}}", "待补充");
+            }
+
+            await ensureLabel(labels.maintenance, "1F75D2", "自动化运维与长期推进任务");
+            await ensureLabel(labels.followup24h, "F9A825", "24h 内评论更新任务");
+            await ensureLabel(labels.promo, "2E7D32", "社区宣发同步任务");
+            await ensureLabel(labels.report, "6A1B9A", "周期运营报表");
+
+            const followupTitle = `PocketMen 24h 评论更新 ${titleDate}`;
+            if (!(await issueExistsByTitle(followupTitle))) {
+              await createIssue(
+                followupTitle,
+                `${followupBody}\n\n> 时间戳：${nowTs}`,
+                [labels.followup24h, labels.maintenance]
+              );
+            }
+
+            if (day === 1) {
+              const maintenanceTitle = `PocketMen 自动推进 · 例行维护 ${titleDate}`;
+              if (!(await issueExistsByTitle(maintenanceTitle))) {
+                await createIssue(
+                  maintenanceTitle,
+                  `${maintenanceBody}\n\n> 时间戳：${nowTs}`,
+                  [labels.maintenance]
+                );
+              }
+
+              const reportTitle = `PocketMen 周期报表 ${titleDate}`;
+              if (!(await issueExistsByTitle(reportTitle))) {
+                const reportBody = await buildReport();
+                await createIssue(
+                  reportTitle,
+                  `${reportBody}\n\n> 时间戳：${nowTs}`,
+                  [labels.report, labels.maintenance]
+                );
+              }
+            }
+
+            if (day === 4) {
+              const promoTitle = `PocketMen 社区宣发推进 ${titleDate}`;
+              if (!(await issueExistsByTitle(promoTitle))) {
+                await createIssue(
+                  promoTitle,
+                  `${promotionBody}\n\n> 时间戳：${nowTs}`,
+                  [labels.promo, labels.maintenance]
+                );
+              }
+            }

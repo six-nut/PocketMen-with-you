@@ -162,6 +162,12 @@ It does **not** claim bit-for-bit or general-purpose parity with a proprietary f
 
 Raw personal references remain local by default and are never copied into public Git commits/releases. The final install package contains only `pet.json` and `spritesheet.webp`.
 
+## Community & maintenance playbook
+
+For operation cadence (24h follow-ups, community sync templates, and weekly reports), use:
+
+- `docs/maintenance/promo-cycle-playbook.md`
+
 ## License
 
 PocketMen code: MIT.

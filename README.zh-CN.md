@@ -158,6 +158,12 @@ v0.3 的目标不是声称某个开放权重模型在所有任务上等于闭源
 
 原始私人照片默认只在本机处理，不会被自动提交到 GitHub 或 Release。最终 Codex 安装包只包含 `pet.json` 和 `spritesheet.webp`。
 
+## 社区与长期维护玩法清单
+
+需要按 24h 评论更新 + 多社区同步 + 周期报表推进时，使用：
+
+- `docs/maintenance/promo-cycle-playbook.md`
+
 ## License
 
 PocketMen 本身采用 MIT；可选模型保持各自许可证，项目只引用、不再分发模型权重。
