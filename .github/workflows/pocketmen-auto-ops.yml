@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: "30 2 * * 1" # 每周一 02:30 UTC：例行维护
     - cron: "30 2 * * 4" # 每周四 02:30 UTC：宣发推进
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 permissions:
   contents: read
