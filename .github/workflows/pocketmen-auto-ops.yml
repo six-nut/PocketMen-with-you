@@ -1,0 +1,124 @@
+name: PocketMen Auto Ops
+
+on:
+  schedule:
+    - cron: "30 2 * * 1" # 每周一 02:30 UTC：例行维护
+    - cron: "30 2 * * 4" # 每周四 02:30 UTC：宣发推进
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "执行模式（auto 会按周内默认分配）"
+        required: false
+        default: auto
+        type: choice
+        options:
+          - auto
+          - maintenance
+          - promotion
+          - health-check
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  auto_ops:
+    runs-on: ubuntu-latest
+    if: github.repository == 'six-nut/PocketMen-with-you'
+    steps:
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            const modeInput = (core.getInput("mode") || "auto").trim().toLowerCase();
+            const day = new Date().getUTCDay();
+            const date = new Date().toISOString().slice(0, 10);
+
+            const mode = modeInput === "auto"
+              ? (day === 1 ? "maintenance" : "promotion")
+              : modeInput;
+
+            const titleDate = new Date().toLocaleDateString("en-CA", { timeZone: "UTC" });
+            const titles = {
+              maintenance: `PocketMen 自动推进 · 例行维护 ${titleDate}`,
+              promotion: `PocketMen 自动推进 · 社区宣发跟进 ${titleDate}`,
+              "health-check": `PocketMen 自动推进 · 健康巡检 ${titleDate}`
+            };
+
+            const bodies = {
+              maintenance: `## 任务目标
+- 持续观察：本仓库 CI、Issue、PR、讨论区与版本更新状态  
+- 重点动作：补齐近 7 天未处理的待办  
+- 输出：更新本任务并打上 \`status:in-review\` 标签
+
+### 例行任务清单
+- [ ] 检查最近 7 天内的 issue/PR 评论与修复反馈
+- [ ] 同步功能/演示参数的可复用模板（如未更新则补齐）
+- [ ] 验证 \`README\` / 社区文案是否与当前版本一致
+- [ ] 列出下一个迭代 3 项高优先级任务并指派负责人
+`,
+              promotion: `## 任务目标
+- 继续提升曝光：在目标社区保持稳定更新频率与内容一致性  
+- 重点动作：72h 内更新评论、发布 demo 对比、收集关键指标
+- 结果：本周固定至少 3 条可复用跟进内容
+
+### 跟进内容模板
+- [ ] 在 GitHub 讨论区发布 1 条最新参数实验帖（含示例图链接）  
+- [ ] 同步 1-2 个外部渠道（知乎 / V2EX / Reddit）更新状态  
+- [ ] 更新 README “Try now + Star + Share” 示例与最新链接
+`,
+              "health-check": `## 任务目标
+- 轻量健康巡检：用于确认仓库长期可持续推进状态
+- 周期动作：不需要新增开发，只做运营/质量状态复盘
+
+### 巡检清单
+- [ ] 最近一次发布后未处理的公开问题是否有回执
+- [ ] GitHub 项目讨论区与 Stars 增长趋势是否异常
+- [ ] 关键文档（\`README\` / \`UPGRADE_WITH_CODEX.md\`）是否可直接复制使用
+- [ ] 若发现高优先级问题，立即新建 issue 并挂载 \`automated-maintenance\`
+`
+            };
+
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: "automated-maintenance"
+              });
+            } catch (error) {
+              if (error.status === 404) {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: "automated-maintenance",
+                  color: "1F75D2",
+                  description: "自动化运维与长期推进任务"
+                });
+              } else {
+                throw error;
+              }
+            }
+
+            const existing = await github.paginate(
+              github.rest.search.issuesAndPullRequests,
+              {
+                q: `repo:${context.repo.owner}/${context.repo.repo} is:issue is:open label:automated-maintenance in:title "${titleDate}"`
+              }
+            );
+
+            const normalizedMode = Object.prototype.hasOwnProperty.call(titles, mode)
+              ? mode
+              : "maintenance";
+
+            const duplicated = existing.some((item) => item.title === titles[normalizedMode]);
+            if (duplicated) {
+              core.info(`Auto-op issue for ${titles[normalizedMode]} already exists, skip.`);
+              return;
+            }
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: titles[normalizedMode],
+              body: bodies[normalizedMode] + `\n\n> 该任务由 GitHub Actions 自动触发，时间戳：${date}\n`,
+              labels: ["automated-maintenance"]
+            });
