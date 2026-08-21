@@ -144,6 +144,12 @@ ${communityTemplates}
 - 24h 新增 PR：{{NEW_PRS_24H}}
 - 7d 新增 Issue：{{NEW_ISSUES_7D}}
 - 7d 新增 PR：{{NEW_PRS_7D}}
+- 7d 关闭 Issue：{{CLOSED_ISSUES_7D}}
+- 7d 关闭 PR：{{CLOSED_PRS_7D}}
+
+### 近7日完成率摘要
+- 完成率：{{SEVEN_DAY_COMPLETION_RATE}}
+- 近7天关闭/新增总计：{{WEEK_CLOSED_VS_NEW}}
 
 ### CI 与质量
 - CI 状态：{{CI_STATUS}}
@@ -157,6 +163,9 @@ ${communityTemplates}
 ### 本周结论
 - 关键词：{{WEEK_KEYWORDS}}
 - 下周重点：{{NEXT_PRIORITY}}
+
+### 下周 3 项任务（自动建议）
+{{NEXT_WEEK_TASKS}}
 `;
 
             function markdownEscape(str) {
@@ -186,6 +195,11 @@ ${communityTemplates}
               return Number(res.data.total_count || 0);
             }
 
+            async function querySearchItems(q, maxItems = 20) {
+              const items = await github.paginate(github.rest.search.issuesAndPullRequests, { q });
+              return items.slice(0, maxItems);
+            }
+
             async function issueExistsByTitle(title) {
               const rows = await github.paginate(github.rest.search.issuesAndPullRequests, {
                 q: `repo:${owner}/${repo} is:issue is:open in:title "${title}"`
@@ -211,6 +225,28 @@ ${communityTemplates}
               const newPRs24h = await queryCount(`repo:${owner}/${repo} is:pr created:>${oneDayAgoDate}`);
               const newIssues7d = await queryCount(`repo:${owner}/${repo} is:issue created:>${sevenDaysAgoDate}`);
               const newPRs7d = await queryCount(`repo:${owner}/${repo} is:pr created:>${sevenDaysAgoDate}`);
+              const closedIssues7d = await queryCount(`repo:${owner}/${repo} is:issue is:closed closed:>${sevenDaysAgoDate}`);
+              const closedPRs7d = await queryCount(`repo:${owner}/${repo} is:pr is:closed closed:>${sevenDaysAgoDate}`);
+              const createdIn7d = newIssues7d + newPRs7d;
+              const closedIn7d = closedIssues7d + closedPRs7d;
+              const completionRate = createdIn7d > 0 ? `${((closedIn7d / createdIn7d) * 100).toFixed(1)}% (${closedIn7d}/${createdIn7d})` : "N/A（近7天新增 0 项）";
+              const weekClosedVsNew = `${closedIn7d}/${createdIn7d}`;
+              const issueCandidates = await querySearchItems(`repo:${owner}/${repo} is:issue is:open -label:automated-maintenance sort:updated-desc`, 8);
+              const prCandidates = await querySearchItems(`repo:${owner}/${repo} is:pr is:open -label:automated-maintenance sort:updated-desc`, 8);
+              const candidateTasks = [...issueCandidates, ...prCandidates].filter((item, idx, arr) =>
+                arr.findIndex((i) => i.number === item.number) === idx
+              );
+              const nextWeekTasks = [];
+              for (const item of candidateTasks.slice(0, 3)) {
+                const prefix = item.pull_request && item.pull_request.url ? "PR" : "Issue";
+                const date = (item.updated_at || "").slice(0, 10);
+                const title = markdownEscape(item.title || "待补充");
+                nextWeekTasks.push(`- [ ] [#${item.number}](${item.html_url}) (${prefix}) ${title}（更新于 ${date}）`);
+              }
+              while (nextWeekTasks.length < 3) {
+                const index = nextWeekTasks.length + 1;
+                nextWeekTasks.push(`- [ ] 下周任务 ${index}：请补充`); 
+              }
 
               const runsRes = await github.request("GET /repos/{owner}/{repo}/actions/workflows/ci.yml/runs", {
                 owner,
@@ -229,13 +265,18 @@ ${communityTemplates}
                 .replaceAll("{{NEW_PRS_24H}}", markdownEscape(newPRs24h))
                 .replaceAll("{{NEW_ISSUES_7D}}", markdownEscape(newIssues7d))
                 .replaceAll("{{NEW_PRS_7D}}", markdownEscape(newPRs7d))
+                .replaceAll("{{CLOSED_ISSUES_7D}}", markdownEscape(closedIssues7d))
+                .replaceAll("{{CLOSED_PRS_7D}}", markdownEscape(closedPRs7d))
+                .replaceAll("{{SEVEN_DAY_COMPLETION_RATE}}", markdownEscape(completionRate))
+                .replaceAll("{{WEEK_CLOSED_VS_NEW}}", markdownEscape(weekClosedVsNew))
                 .replaceAll("{{CI_STATUS}}", markdownEscape(ciStatus))
                 .replaceAll("{{QUALITY_NOTES}}", "待补充")
                 .replaceAll("{{FOLLOWUP_DONE_24H}}", "待补充")
                 .replaceAll("{{COMMUNITY_LINKS}}", "待补充")
                 .replaceAll("{{RESP_TIME}}", "待补充")
                 .replaceAll("{{WEEK_KEYWORDS}}", "待补充")
-                .replaceAll("{{NEXT_PRIORITY}}", "待补充");
+                .replaceAll("{{NEXT_PRIORITY}}", "待补充")
+                .replaceAll("{{NEXT_WEEK_TASKS}}", nextWeekTasks.join("\n"));
             }
 
             await ensureLabel(labels.maintenance, "1F75D2", "自动化运维与长期推进任务");
