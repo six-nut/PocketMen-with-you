@@ -3,6 +3,7 @@
   <h1>PocketMen with You</h1>
   <p><strong>Turn 2+ photos into a high-fidelity Codex companion — locally.</strong></p>
   <p><strong>v0.3: Neural Local Studio. No hatch-pet. No OpenAI API key. Open-weight multi-reference editing when your GPU can run it.</strong></p>
+  <p><a href="https://github.com/six-nut/PocketMen-with-you/releases/tag/v0.3.0"><strong>Try now</strong></a> · <a href="https://github.com/six-nut/PocketMen-with-you"><strong>⭐ Star</strong></a> · <a href="https://github.com/six-nut/PocketMen-with-you/discussions/11"><strong>Share example</strong></a></p>
 </div>
 
 [简体中文](README.zh-CN.md)
