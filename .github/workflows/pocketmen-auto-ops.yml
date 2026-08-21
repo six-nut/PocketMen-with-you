@@ -3,8 +3,8 @@ name: PocketMen Auto Ops
 on:
   schedule:
     - cron: "30 2 * * *" # 每天 02:30 UTC：24h 评论更新与状态跟进
-    - cron: "30 2 * * 1" # 每周一 02:30 UTC：例行维护 + 周期报表
-    - cron: "30 2 * * 4" # 每周四 02:30 UTC：社区宣发跟进
+    - cron: "10 2 * * 1" # 每周一 02:10 UTC：例行维护 + 周期报表
+    - cron: "20 2 * * 4" # 每周四 02:20 UTC：社区宣发跟进
 
 permissions:
   contents: read
