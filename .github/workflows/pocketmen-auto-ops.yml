@@ -5,6 +5,19 @@ on:
     - cron: "30 2 * * *" # 每天 02:30 UTC：24h 评论更新与状态跟进
     - cron: "10 2 * * 1" # 每周一 02:10 UTC：例行维护 + 周期报表
     - cron: "20 2 * * 4" # 每周四 02:20 UTC：社区宣发跟进
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "执行模式：auto（按周期）、followup、maintenance、promo、report"
+        required: false
+        default: auto
+        type: choice
+        options:
+          - auto
+          - followup
+          - maintenance
+          - promo
+          - report
 
 permissions:
   contents: read
@@ -13,7 +26,7 @@ permissions:
 jobs:
   auto_ops:
     runs-on: ubuntu-latest
-    if: github.repository == 'six-nut/PocketMen-with-you'
+    if: github.repository == 'six-nut/PocketMen-with-you' && github.actor != 'dependabot[bot]'
     steps:
       - uses: actions/github-script@v8
         with:
@@ -24,6 +37,7 @@ jobs:
             const nowTs = now.toISOString();
             const oneDayAgoDate = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
             const sevenDaysAgoDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+            const modeInput = (core.getInput("mode") || "auto").trim().toLowerCase();
 
             const owner = context.repo.owner;
             const repo = context.repo.repo;
@@ -35,141 +49,167 @@ jobs:
               report: "auto-cycle-report"
             };
 
-            const communityTemplates = `## 多社区同步模板（复制到对应渠道）
+            const communityTemplates = [
+              "## 多社区同步模板（复制到对应渠道）",
+              "",
+              "> 目标：在 24 小时内持续发声并保持参数演示一致",
+              "",
+              "### 1) 知乎",
+              "标题示例：`PocketMen with you：24h 跟进与参数对比`",
+              "",
+              "```",
+              "今天同步一条 24h 跟进，重点是实测参数复现：",
+              "- 默认后端：FLUX.2-klein-4B",
+              "- 可选后端：Qwen-Image-Edit-2511",
+              "- 关键参数：cfg=1.5, steps=28, seed=42",
+              "请看参数与对比，欢迎评论要求更多参数配置版本。",
+              "```",
+              "",
+              "### 2) V2EX",
+              "```",
+              "PocketMen with you 24h 跟进",
+              "",
+              "本轮更新：",
+              "- 参数实验：seed/CFG/steps 复现表",
+              "- 场景对比：同一提示词多后端对比",
+              "- 无需 OPENAI_API_KEY，可本地优先",
+              "```",
+              "",
+              "### 3) Reddit（r/LocalLLaMA / r/MachineLearning）",
+              "```",
+              "Title: PocketMen-with-you open-source local pet animation update (24h follow-up)",
+              "",
+              "I posted a 24h follow-up for PocketMen-with-you:",
+              "- default backend: black-forest-labs/FLUX.2-klein-4B",
+              "- optional Identity-Max: Qwen/Qwen-Image-Edit-2511",
+              "- no OPENAI_API_KEY required for normal generation",
+              "- include one parameter block + one side-by-side result sample",
+              "```",
+              ""
+            ].join("\n");
 
-> 目标：在 24 小时内持续发声并保持参数演示一致
+            const followupBody = [
+              "## 24h 评论更新（请在 24h 内完成）",
+              "",
+              "### 目标",
+              "保持 GitHub 与外部社区的持续讨论，补齐参数复用示例与反馈收口。",
+              "",
+              "### 执行清单（必须打勾）",
+              "- [ ] 在 GitHub 讨论区新增 1 条参数实验评论（含参数表）",
+              "- [ ] 在相关帖子补充 1 条对比结果",
+              "- [ ] 回复 1~2 个用户建议或问题",
+              "- [ ] 同步三处外部社区（知乎/V2EX/Reddit）并记录链接",
+              "",
+              "### 可复用参数区块（复制）",
+              "```",
+              "模型：FLUX.2-klein-4B（默认）",
+              "身份增强：Qwen-Image-Edit-2511（可选）",
+              "steps: 28",
+              "cfg: 1.5",
+              "seed: 42",
+              "sampler: 默认设置",
+              "负向提示：blurry, distortion, artifact, jitter",
+              "```",
+              "",
+              "### 多社区同步（当天发布）",
+              communityTemplates,
+              "",
+              "### 备注",
+              "- 本 issue 由 GitHub Actions 每 24h 自动创建",
+              "- 完成后请回复时间与结果，例如：`已发布知乎帖子链接`",
+              ""
+            ].join("\n");
 
-### 1) 知乎
-标题示例：\`PocketMen with you：24h 跟进与参数对比\`
+            const maintenanceBody = [
+              "## 例行维护（本周）",
+              "",
+              "### 本周目标",
+              "- 与现有功能一致，减少文档漂移",
+              "- 保持外部反馈闭环",
+              "",
+              "### 任务清单",
+              "- [ ] 检查最近 7 天内 Issue / PR 的处理状态",
+              "- [ ] 对照 docs 与 README 更新关键参数与默认值",
+              "- [ ] 验证 24h 跟进是否闭环（已回复率）",
+              "- [ ] 输出下周 3 个功能优先级",
+              ""
+            ].join("\n");
 
-\`\`\`
-今天同步一条 24h 跟进，重点是实测参数复现：
-- 默认后端：FLUX.2-klein-4B
-- 可选后端：Qwen-Image-Edit-2511
-- 关键参数：cfg=1.5, steps=28, seed=42
-请看参数与对比，欢迎评论要求更多参数配置版本。
-\`\`\`
+            const promotionBody = [
+              "## 社区宣发推进（72h 周期）",
+              "",
+              "### 目标",
+              "保持稳定曝光，形成 72 小时内的“中文 + 国际社交”同步节奏。",
+              "",
+              "### 执行清单",
+              "- [ ] 1 条 GitHub 讨论区总结帖（含参数清单和效果对比）",
+              "- [ ] 1 条知乎帖子/回答",
+              "- [ ] 1 条 V2EX 帖子",
+              "- [ ] 1 条 Reddit 帖子（r/LocalLLaMA / r/MachineLearning 其一）",
+              "- [ ] 在本 issue 中记录 3 条外部发布链接",
+              "",
+              "### 多社区同步",
+              communityTemplates,
+              ""
+            ].join("\n");
 
-### 2) V2EX
-\`\`\`
-PocketMen with you 24h 跟进
-
-本轮更新：
-- 参数实验：seed/CFG/steps 复现表
-- 场景对比：同一提示词多后端对比
-- 无需 OPENAI_API_KEY，可本地优先
-\`\`\`
-
-### 3) Reddit（r/LocalLLaMA / r/MachineLearning）
-\`\`\`
-Title: PocketMen-with-you open-source local pet animation update (24h follow-up)
-
-I posted a 24h follow-up for PocketMen-with-you:
-- default backend: black-forest-labs/FLUX.2-klein-4B
-- optional Identity-Max: Qwen/Qwen-Image-Edit-2511
-- no OPENAI_API_KEY required for normal generation
-- include one parameter block + one side-by-side result sample
-\`\`\`
-
-`;
-
-            const followupBody = `## 24h 评论更新（请在 24h 内完成）
-
-### 目标
-保持 GitHub 与外部社区的持续讨论，补齐参数复用示例与反馈收口。
-
-### 执行清单（必须打勾）
-- [ ] 在 GitHub 讨论区新增 1 条参数实验评论（含参数表）
-- [ ] 在相关帖子补充 1 条对比结果
-- [ ] 回复 1~2 个用户建议或问题
-- [ ] 同步三处外部社区（知乎/V2EX/Reddit）并记录链接
-
-### 可复用参数区块（复制）
-\`\`\`
-模型：FLUX.2-klein-4B（默认）
-身份增强：Qwen-Image-Edit-2511（可选）
-steps: 28
-cfg: 1.5
-seed: 42
-sampler: 默认设置
-负向提示：blurry, distortion, artifact, jitter
-\`\`\`
-
-### 多社区同步（当天发布）
-${communityTemplates}
-
-### 备注
-- 本 issue 由 GitHub Actions 每 24h 自动创建
-- 完成后请回复时间与结果，例如：\`已发布知乎帖子链接\`
-`;
-
-            const maintenanceBody = `## 例行维护（本周）
-
-### 本周目标
-- 与现有功能一致，减少文档漂移
-- 保持外部反馈闭环
-
-### 任务清单
-- [ ] 检查最近 7 天内 Issue / PR 的处理状态
-- [ ] 对照 docs 与 README 更新关键参数与默认值
-- [ ] 验证 24h 跟进是否闭环（已回复率）
-- [ ] 输出下周 3 个功能优先级
-`;
-
-            const promotionBody = `## 社区宣发推进（72h 周期）
-
-### 目标
-保持稳定曝光，形成 72 小时内的“中文 + 国际社交”同步节奏。
-
-### 执行清单
-- [ ] 1 条 GitHub 讨论区总结帖（含参数清单和效果对比）
-- [ ] 1 条知乎帖子/回答
-- [ ] 1 条 V2EX 帖子
-- [ ] 1 条 Reddit 帖子（r/LocalLLaMA / r/MachineLearning 其一）
-- [ ] 在本 issue 中记录 3 条外部发布链接
-
-### 多社区同步
-${communityTemplates}
-`;
-
-            const weeklyReportTemplate = `## 周期报表（每周）
-
-### 仓库快照
-- 日期：${titleDate}
-- Stars：{{STARS}}
-- Forks：{{FORKS}}
-- Open Issues：{{OPEN_ISSUES}}
-- Open PRs：{{OPEN_PRS}}
-- 24h 新增 Issue：{{NEW_ISSUES_24H}}
-- 24h 新增 PR：{{NEW_PRS_24H}}
-- 7d 新增 Issue：{{NEW_ISSUES_7D}}
-- 7d 新增 PR：{{NEW_PRS_7D}}
-- 7d 关闭 Issue：{{CLOSED_ISSUES_7D}}
-- 7d 关闭 PR：{{CLOSED_PRS_7D}}
-
-### 近7日完成率摘要
-- 完成率：{{SEVEN_DAY_COMPLETION_RATE}}
-- 近7天关闭/新增总计：{{WEEK_CLOSED_VS_NEW}}
-
-### CI 与质量
-- CI 状态：{{CI_STATUS}}
-- 回退与补丁可验证项：{{QUALITY_NOTES}}
-
-### 运营执行情况（需人工补齐）
-- 24h 评论更新是否按时发布：{{FOLLOWUP_DONE_24H}}（是/否）
-- 社区同步链接（知乎/V2EX/Reddit）：{{COMMUNITY_LINKS}}
-- 讨论区响应耗时：{{RESP_TIME}}
-
-### 本周结论
-- 关键词：{{WEEK_KEYWORDS}}
-- 下周重点：{{NEXT_PRIORITY}}
-
-### 下周 3 项任务（自动建议）
-{{NEXT_WEEK_TASKS}}
-`;
+            const weeklyReportTemplate = [
+              "## 周期报表（每周）",
+              "",
+              "### 仓库快照",
+              `- 日期：${titleDate}`,
+              "- Stars：{{STARS}}",
+              "- Forks：{{FORKS}}",
+              "- Open Issues：{{OPEN_ISSUES}}",
+              "- Open PRs：{{OPEN_PRS}}",
+              "- 24h 新增 Issue：{{NEW_ISSUES_24H}}",
+              "- 24h 新增 PR：{{NEW_PRS_24H}}",
+              "- 7d 新增 Issue：{{NEW_ISSUES_7D}}",
+              "- 7d 新增 PR：{{NEW_PRS_7D}}",
+              "- 7d 关闭 Issue：{{CLOSED_ISSUES_7D}}",
+              "- 7d 关闭 PR：{{CLOSED_PRS_7D}}",
+              "",
+              "### 近7日完成率摘要",
+              "- 完成率：{{SEVEN_DAY_COMPLETION_RATE}}",
+              "- 近7天关闭/新增总计：{{WEEK_CLOSED_VS_NEW}}",
+              "",
+              "### CI 与质量",
+              "- CI 状态：{{CI_STATUS}}",
+              "- 回退与补丁可验证项：{{QUALITY_NOTES}}",
+              "",
+              "### 运营执行情况（需人工补齐）",
+              "- 24h 评论更新是否按时发布：{{FOLLOWUP_DONE_24H}}（是/否）",
+              "- 社区同步链接（知乎/V2EX/Reddit）：{{COMMUNITY_LINKS}}",
+              "- 讨论区响应耗时：{{RESP_TIME}}",
+              "",
+              "### 本周结论",
+              "- 关键词：{{WEEK_KEYWORDS}}",
+              "- 下周重点：{{NEXT_PRIORITY}}",
+              "",
+              "### 下周 3 项任务（自动建议）",
+              "{{NEXT_WEEK_TASKS}}",
+              ""
+            ].join("\n");
 
             function markdownEscape(str) {
               return String(str || "").replaceAll("|", "\\|");
+            }
+
+            function parseModes(mode) {
+              const allow = new Set(["auto", "followup", "maintenance", "promo", "report"]);
+              const normalized = allow.has(mode) ? mode : "auto";
+              const result = [];
+              if (normalized === "auto") {
+                result.push("followup");
+                if (day === 1) {
+                  result.push("maintenance", "report");
+                }
+                if (day === 4) {
+                  result.push("promo");
+                }
+                return result;
+              }
+              return [normalized];
             }
 
             async function ensureLabel(name, color, description) {
@@ -191,30 +231,51 @@ ${communityTemplates}
             }
 
             async function queryCount(q) {
-              const res = await github.rest.search.issuesAndPullRequests({ q });
-              return Number(res.data.total_count || 0);
+              try {
+                const res = await github.rest.search.issuesAndPullRequests({ q });
+                return Number(res.data.total_count || 0);
+              } catch (error) {
+                core.warning(`queryCount failed for: ${q} -> ${error.message}`);
+                return 0;
+              }
             }
 
             async function querySearchItems(q, maxItems = 20) {
-              const items = await github.paginate(github.rest.search.issuesAndPullRequests, { q });
-              return items.slice(0, maxItems);
+              try {
+                const items = await github.paginate(github.rest.search.issuesAndPullRequests, { q });
+                return items.slice(0, maxItems);
+              } catch (error) {
+                core.warning(`querySearchItems failed for: ${q} -> ${error.message}`);
+                return [];
+              }
             }
 
             async function issueExistsByTitle(title) {
-              const rows = await github.paginate(github.rest.search.issuesAndPullRequests, {
-                q: `repo:${owner}/${repo} is:issue is:open in:title "${title}"`
-              });
-              return rows.some((item) => item.title === title);
+              try {
+                const rows = await github.paginate(github.rest.search.issuesAndPullRequests, {
+                  q: `repo:${owner}/${repo} is:issue in:title "${title}"`
+                });
+                return rows.some((item) => item.title === title);
+              } catch (error) {
+                core.warning(`issueExistsByTitle failed for: ${title} -> ${error.message}`);
+                return false;
+              }
             }
 
             async function createIssue(title, body, issueLabels) {
-              await github.rest.issues.create({
-                owner,
-                repo,
-                title,
-                body,
-                labels: issueLabels
-              });
+              try {
+                await github.rest.issues.create({
+                  owner,
+                  repo,
+                  title,
+                  body,
+                  labels: issueLabels
+                });
+                return true;
+              } catch (error) {
+                core.warning(`createIssue failed for ${title}: ${error.message}`);
+                return false;
+              }
             }
 
             async function buildReport() {
@@ -245,7 +306,7 @@ ${communityTemplates}
               }
               while (nextWeekTasks.length < 3) {
                 const index = nextWeekTasks.length + 1;
-                nextWeekTasks.push(`- [ ] 下周任务 ${index}：请补充`); 
+                nextWeekTasks.push(`- [ ] 下周任务 ${index}：请补充`);
               }
 
               const runsRes = await github.request("GET /repos/{owner}/{repo}/actions/workflows/ci.yml/runs", {
@@ -279,48 +340,60 @@ ${communityTemplates}
                 .replaceAll("{{NEXT_WEEK_TASKS}}", nextWeekTasks.join("\n"));
             }
 
+            const modes = parseModes(modeInput);
+            const followupTitle = `PocketMen 24h 评论更新 ${titleDate}`;
+            const maintenanceTitle = `PocketMen 自动推进 · 例行维护 ${titleDate}`;
+            const reportTitle = `PocketMen 周期报表 ${titleDate}`;
+            const promoTitle = `PocketMen 社区宣发推进 ${titleDate}`;
+
             await ensureLabel(labels.maintenance, "1F75D2", "自动化运维与长期推进任务");
             await ensureLabel(labels.followup24h, "F9A825", "24h 内评论更新任务");
             await ensureLabel(labels.promo, "2E7D32", "社区宣发同步任务");
             await ensureLabel(labels.report, "6A1B9A", "周期运营报表");
 
-            const followupTitle = `PocketMen 24h 评论更新 ${titleDate}`;
-            if (!(await issueExistsByTitle(followupTitle))) {
-              await createIssue(
+            if (modes.includes("followup") && !(await issueExistsByTitle(followupTitle))) {
+              const created = await createIssue(
                 followupTitle,
                 `${followupBody}\n\n> 时间戳：${nowTs}`,
                 [labels.followup24h, labels.maintenance]
               );
+              if (!created) {
+                core.setFailed(`Failed to create followup issue: ${followupTitle}`);
+              }
             }
 
-            if (day === 1) {
-              const maintenanceTitle = `PocketMen 自动推进 · 例行维护 ${titleDate}`;
-              if (!(await issueExistsByTitle(maintenanceTitle))) {
-                await createIssue(
-                  maintenanceTitle,
-                  `${maintenanceBody}\n\n> 时间戳：${nowTs}`,
-                  [labels.maintenance]
-                );
+            if (modes.includes("maintenance") && !(await issueExistsByTitle(maintenanceTitle))) {
+              const created = await createIssue(
+                maintenanceTitle,
+                `${maintenanceBody}\n\n> 时间戳：${nowTs}`,
+                [labels.maintenance]
+              );
+              if (!created) {
+                core.setFailed(`Failed to create maintenance issue: ${maintenanceTitle}`);
               }
+            }
 
-              const reportTitle = `PocketMen 周期报表 ${titleDate}`;
+            if (modes.includes("report")) {
               if (!(await issueExistsByTitle(reportTitle))) {
                 const reportBody = await buildReport();
-                await createIssue(
+                const created = await createIssue(
                   reportTitle,
                   `${reportBody}\n\n> 时间戳：${nowTs}`,
                   [labels.report, labels.maintenance]
                 );
+                if (!created) {
+                  core.setFailed(`Failed to create weekly report issue: ${reportTitle}`);
+                }
               }
             }
 
-            if (day === 4) {
-              const promoTitle = `PocketMen 社区宣发推进 ${titleDate}`;
-              if (!(await issueExistsByTitle(promoTitle))) {
-                await createIssue(
-                  promoTitle,
-                  `${promotionBody}\n\n> 时间戳：${nowTs}`,
-                  [labels.promo, labels.maintenance]
-                );
+            if (modes.includes("promo") && !(await issueExistsByTitle(promoTitle))) {
+              const created = await createIssue(
+                promoTitle,
+                `${promotionBody}\n\n> 时间戳：${nowTs}`,
+                [labels.promo, labels.maintenance]
+              );
+              if (!created) {
+                core.setFailed(`Failed to create promo issue: ${promoTitle}`);
               }
             }
