@@ -27,9 +27,14 @@ jobs:
   auto_ops:
     runs-on: ubuntu-latest
     if: github.repository == 'six-nut/PocketMen-with-you' && github.actor != 'dependabot[bot]'
+    permissions:
+      contents: read
+      issues: write
     steps:
       - uses: actions/github-script@v8
         with:
+          # 优先使用用户维护身份 Token；若未配置则回退为 workflow 默认 token
+          github-token: ${{ secrets.POCKETMEN_AUTO_OPS_TOKEN || github.token }}
           script: |
             const now = new Date();
             const day = now.getUTCDay();
