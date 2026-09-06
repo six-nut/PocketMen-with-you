@@ -65,3 +65,59 @@ def test_unreadable_file_returns_validation_error(tmp_path: Path):
 
     assert not result["ok"]
     assert any("could not open atlas" in error for error in result["errors"])
+
+
+def test_motion_validator_reports_baseline_jump_warning(tmp_path: Path):
+    atlas = Image.new("RGBA", (ATLAS_WIDTH, ATLAS_HEIGHT), (0, 0, 0, 0))
+    d = ImageDraw.Draw(atlas)
+
+    idle_row = 0
+    for col in range(6):
+        top = 70 + (25 if col == 2 else 0)
+        x = col * CELL_WIDTH + 40
+        d.rectangle((x, top, x + 50, top + 40), fill=(90, 110, 130, 255))
+
+    for row, (_, count) in enumerate(ROW_SPECS):
+        if row == idle_row:
+            continue
+        for col in range(count):
+            if col == 0:
+                y = row * CELL_HEIGHT + 30
+                x = col * CELL_WIDTH + 70
+                d.ellipse((x, y, x + 50, y + 70), fill=(40, 50, 60, 255))
+
+    path = tmp_path / "baseline-jump.png"
+    atlas.save(path)
+    result = validate_atlas(path)
+
+    assert result["ok"], result
+    assert result["motion_consistency"]["idle"]["max_baseline_jump_px"] >= 25
+    assert any("baseline jump" in warning for warning in result["warnings"])
+
+
+def test_motion_validator_reports_scale_jump_warning(tmp_path: Path):
+    atlas = Image.new("RGBA", (ATLAS_WIDTH, ATLAS_HEIGHT), (0, 0, 0, 0))
+    d = ImageDraw.Draw(atlas)
+    sizes = [40, 70]
+
+    for col, width in enumerate(sizes):
+        x = col * CELL_WIDTH + 50
+        y = 90
+        d.rectangle((x, y, x + width, y + 55), fill=(150, 60, 60, 255))
+
+    for row, (_, count) in enumerate(ROW_SPECS):
+        if row == 0:
+            continue
+        for col in range(count):
+            if col == 0:
+                y = row * CELL_HEIGHT + 30
+                x = col * CELL_WIDTH + 70
+                d.ellipse((x, y, x + 40, y + 60), fill=(40, 50, 60, 255))
+
+    path = tmp_path / "scale-jump.png"
+    atlas.save(path)
+    result = validate_atlas(path)
+
+    assert result["ok"], result
+    assert any("scale jump" in warning for warning in result["warnings"])
+    assert result["motion_consistency"]["idle"]["max_scale_jump_ratio"] > 0.18
