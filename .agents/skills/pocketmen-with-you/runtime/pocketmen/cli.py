@@ -39,6 +39,9 @@ def build_parser() -> argparse.ArgumentParser:
     v = sub.add_parser("validate", help="validate a Codex pet atlas")
     v.add_argument("atlas")
     v.add_argument("--json-out")
+    v.add_argument("--motion-baseline-jump-px", type=int, default=18)
+    v.add_argument("--motion-scale-ratio", type=float, default=0.18)
+    v.add_argument("--motion-jumping-baseline-px", type=int, default=58)
 
     c = sub.add_parser("contact-sheet", help="render a QA contact sheet")
     c.add_argument("atlas")
@@ -78,7 +81,12 @@ def main() -> int:
         print(json.dumps(summary, indent=2, ensure_ascii=False))
         return 0 if summary["ok"] else 1
     if args.command == "validate":
-        result = validate_atlas(args.atlas)
+        result = validate_atlas(
+            args.atlas,
+            motion_baseline_jump_px=args.motion_baseline_jump_px,
+            motion_scale_ratio=args.motion_scale_ratio,
+            motion_jumping_baseline_px=args.motion_jumping_baseline_px,
+        )
         print(json.dumps(result, indent=2, ensure_ascii=False))
         if args.json_out:
             write_validation(result, args.json_out)

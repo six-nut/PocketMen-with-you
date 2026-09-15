@@ -22,11 +22,19 @@ def _transparent_rgb_residue(im: Image.Image) -> int:
     )
 
 
-def validate_atlas(path: str | Path, *, edge_margin: int = 1) -> dict[str, Any]:
+def validate_atlas(
+    path: str | Path,
+    *,
+    edge_margin: int = 1,
+    motion_baseline_jump_px: int = 18,
+    motion_scale_ratio: float = 0.18,
+    motion_jumping_baseline_px: int = 58,
+) -> dict[str, Any]:
     path = Path(path)
     errors: list[str] = []
     warnings: list[str] = []
     cells: list[dict[str, Any]] = []
+    motion: dict[str, Any] = {}
 
     try:
         with Image.open(path) as src:
@@ -45,12 +53,40 @@ def validate_atlas(path: str | Path, *, edge_margin: int = 1) -> dict[str, Any]:
 
     if image.size == (ATLAS_WIDTH, ATLAS_HEIGHT):
         for row_index, (state, frame_count) in enumerate(ROW_SPECS):
+            row_baselines: list[int] = []
+            row_widths: list[int] = []
+            row_heights: list[int] = []
+            prev = None
+            max_baseline_jump = 0
+            max_scale_jump = 0.0
+            baseline_threshold = motion_jumping_baseline_px if state == "jumping" else motion_baseline_jump_px
             for col in range(COLUMNS):
                 left, top = col * CELL_WIDTH, row_index * CELL_HEIGHT
                 cell = image.crop((left, top, left + CELL_WIDTH, top + CELL_HEIGHT))
                 used = col < frame_count
                 nonzero = _nonzero_alpha(cell)
-                info = {"state": state, "row": row_index, "column": col, "used": used, "nontransparent_pixels": nonzero}
+                info: dict[str, Any] = {
+                    "state": state,
+                    "row": row_index,
+                    "column": col,
+                    "used": used,
+                    "nontransparent_pixels": nonzero,
+                }
+                frame_bbox = cell.getchannel("A").getbbox() if used else None
+                if frame_bbox:
+                    l, t, r, b = frame_bbox
+                    width = max(1, r - l)
+                    height = max(1, b - t)
+                    baseline = b
+                    info.update(
+                        {
+                            "bbox": list(frame_bbox),
+                            "frame_width": width,
+                            "frame_height": height,
+                            "baseline": baseline,
+                            "center": [(l + r) / 2, (t + b) / 2],
+                        }
+                    )
                 cells.append(info)
                 if used and nonzero < 50:
                     errors.append(f"{state} frame {col + 1} is empty or too sparse")
@@ -63,6 +99,51 @@ def validate_atlas(path: str | Path, *, edge_margin: int = 1) -> dict[str, Any]:
                         l, t, r, b = bbox
                         if l <= edge_margin or t <= edge_margin or r >= CELL_WIDTH - edge_margin or b >= CELL_HEIGHT - edge_margin:
                             warnings.append(f"{state} frame {col + 1} touches or nearly touches a cell edge")
+
+                if used:
+                    if frame_bbox:
+                        row_baselines.append(baseline)
+                        row_widths.append(width)
+                        row_heights.append(height)
+                        if prev is not None:
+                            p_baseline, p_width, p_height = prev
+                            baseline_jump = abs(baseline - p_baseline)
+                            max_baseline_jump = max(max_baseline_jump, baseline_jump)
+                            info["baseline_delta_px"] = baseline - p_baseline
+                            if baseline_jump > baseline_threshold:
+                                warnings.append(
+                                    f"{state} frame {col + 1} baseline jump is {baseline_jump}px from frame {col} "
+                                    f"(threshold {baseline_threshold}px)"
+                                )
+                            scale_jump = max(
+                                abs(width - p_width) / max(1, p_width),
+                                abs(height - p_height) / max(1, p_height),
+                            )
+                            max_scale_jump = max(max_scale_jump, scale_jump)
+                            info["scale_jump_ratio"] = round(scale_jump, 4)
+                            if scale_jump > motion_scale_ratio:
+                                warnings.append(
+                                    f"{state} frame {col + 1} scale jump is {scale_jump:.2f} from frame {col} "
+                                    f"(threshold {motion_scale_ratio:.2f})"
+                                )
+                        prev = (baseline, width, height)
+                    else:
+                        prev = None
+
+            if row_baselines:
+                motion[state] = {
+                    "used_frames": len(row_baselines),
+                    "baseline_span_px": max(row_baselines) - min(row_baselines),
+                    "max_baseline_jump_px": max_baseline_jump,
+                    "max_scale_jump_ratio": round(max_scale_jump, 4),
+                }
+            else:
+                motion[state] = {
+                    "used_frames": 0,
+                    "baseline_span_px": 0,
+                    "max_baseline_jump_px": 0,
+                    "max_scale_jump_ratio": 0.0,
+                }
 
     residue = _transparent_rgb_residue(image)
     if residue:
@@ -77,7 +158,13 @@ def validate_atlas(path: str | Path, *, edge_margin: int = 1) -> dict[str, Any]:
         "errors": errors,
         "warnings": warnings,
         "cells": cells,
+        "motion_consistency": motion,
         "transparent_rgb_residue": residue,
+        "motion_thresholds": {
+            "baseline_jump_px": motion_baseline_jump_px,
+            "scale_jump_ratio": motion_scale_ratio,
+            "jumping_baseline_jump_px": motion_jumping_baseline_px,
+        },
     }
 
 

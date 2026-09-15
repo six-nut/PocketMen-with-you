@@ -18,6 +18,9 @@ def test_synthetic_atlas_passes(tmp_path: Path):
     atlas.save(path)
     result = validate_atlas(path)
     assert result["ok"], result
+    assert not result["warnings"]
+    assert result["cells"][0]["center"] == [80.5, 90.5]
+    assert result["motion_consistency"]["idle"]["max_baseline_jump_px"] == 0
 
 
 def test_unused_cell_must_be_transparent(tmp_path: Path):
@@ -81,24 +84,24 @@ def test_motion_validator_reports_baseline_jump_warning(tmp_path: Path):
         if row == idle_row:
             continue
         for col in range(count):
-            if col == 0:
-                y = row * CELL_HEIGHT + 30
-                x = col * CELL_WIDTH + 70
-                d.ellipse((x, y, x + 50, y + 70), fill=(40, 50, 60, 255))
+            y = row * CELL_HEIGHT + 30
+            x = col * CELL_WIDTH + 70
+            d.ellipse((x, y, x + 50, y + 70), fill=(40, 50, 60, 255))
 
     path = tmp_path / "baseline-jump.png"
     atlas.save(path)
-    result = validate_atlas(path)
+    result = validate_atlas(path, edge_margin=0)
 
     assert result["ok"], result
-    assert result["motion_consistency"]["idle"]["max_baseline_jump_px"] >= 25
+    assert result["motion_consistency"]["idle"]["max_baseline_jump_px"] == 25
     assert any("baseline jump" in warning for warning in result["warnings"])
+    assert not validate_atlas(path, motion_baseline_jump_px=30)["warnings"]
 
 
 def test_motion_validator_reports_scale_jump_warning(tmp_path: Path):
     atlas = Image.new("RGBA", (ATLAS_WIDTH, ATLAS_HEIGHT), (0, 0, 0, 0))
     d = ImageDraw.Draw(atlas)
-    sizes = [40, 70]
+    sizes = [40, 70, 70, 70, 70, 70]
 
     for col, width in enumerate(sizes):
         x = col * CELL_WIDTH + 50
@@ -109,10 +112,9 @@ def test_motion_validator_reports_scale_jump_warning(tmp_path: Path):
         if row == 0:
             continue
         for col in range(count):
-            if col == 0:
-                y = row * CELL_HEIGHT + 30
-                x = col * CELL_WIDTH + 70
-                d.ellipse((x, y, x + 40, y + 60), fill=(40, 50, 60, 255))
+            y = row * CELL_HEIGHT + 30
+            x = col * CELL_WIDTH + 70
+            d.ellipse((x, y, x + 40, y + 60), fill=(40, 50, 60, 255))
 
     path = tmp_path / "scale-jump.png"
     atlas.save(path)
@@ -121,3 +123,22 @@ def test_motion_validator_reports_scale_jump_warning(tmp_path: Path):
     assert result["ok"], result
     assert any("scale jump" in warning for warning in result["warnings"])
     assert result["motion_consistency"]["idle"]["max_scale_jump_ratio"] > 0.18
+    assert not validate_atlas(path, motion_scale_ratio=0.8)["warnings"]
+
+
+def test_intentional_jumping_uses_separate_threshold(tmp_path: Path):
+    atlas = Image.new("RGBA", (ATLAS_WIDTH, ATLAS_HEIGHT))
+    draw = ImageDraw.Draw(atlas)
+    for row, (state, count) in enumerate(ROW_SPECS):
+        for col in range(count):
+            x = col * CELL_WIDTH + 40
+            y = row * CELL_HEIGHT + 40 + (30 if state == "jumping" and col == 2 else 0)
+            draw.rectangle((x, y, x + 50, y + 60), fill=(50, 80, 90, 255))
+    path = tmp_path / "jumping.png"
+    atlas.save(path)
+    result = validate_atlas(path)
+    assert result["ok"]
+    assert not result["warnings"]
+    assert result["motion_consistency"]["jumping"]["max_baseline_jump_px"] == 30
+    strict = validate_atlas(path, motion_jumping_baseline_px=18)
+    assert any("jumping frame 3 baseline jump" in warning for warning in strict["warnings"])

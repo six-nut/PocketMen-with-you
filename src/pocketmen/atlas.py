@@ -28,6 +28,7 @@ def validate_atlas(
     edge_margin: int = 1,
     motion_baseline_jump_px: int = 18,
     motion_scale_ratio: float = 0.18,
+    motion_jumping_baseline_px: int = 58,
 ) -> dict[str, Any]:
     path = Path(path)
     errors: list[str] = []
@@ -58,6 +59,7 @@ def validate_atlas(
             prev = None
             max_baseline_jump = 0
             max_scale_jump = 0.0
+            baseline_threshold = motion_jumping_baseline_px if state == "jumping" else motion_baseline_jump_px
             for col in range(COLUMNS):
                 left, top = col * CELL_WIDTH, row_index * CELL_HEIGHT
                 cell = image.crop((left, top, left + CELL_WIDTH, top + CELL_HEIGHT))
@@ -82,6 +84,7 @@ def validate_atlas(
                             "frame_width": width,
                             "frame_height": height,
                             "baseline": baseline,
+                            "center": [(l + r) / 2, (t + b) / 2],
                         }
                     )
                 cells.append(info)
@@ -97,6 +100,7 @@ def validate_atlas(
                         if l <= edge_margin or t <= edge_margin or r >= CELL_WIDTH - edge_margin or b >= CELL_HEIGHT - edge_margin:
                             warnings.append(f"{state} frame {col + 1} touches or nearly touches a cell edge")
 
+                if used:
                     if frame_bbox:
                         row_baselines.append(baseline)
                         row_widths.append(width)
@@ -105,22 +109,26 @@ def validate_atlas(
                             p_baseline, p_width, p_height = prev
                             baseline_jump = abs(baseline - p_baseline)
                             max_baseline_jump = max(max_baseline_jump, baseline_jump)
-                            if baseline_jump > motion_baseline_jump_px:
+                            info["baseline_delta_px"] = baseline - p_baseline
+                            if baseline_jump > baseline_threshold:
                                 warnings.append(
                                     f"{state} frame {col + 1} baseline jump is {baseline_jump}px from frame {col} "
-                                    f"(threshold {motion_baseline_jump_px}px)"
+                                    f"(threshold {baseline_threshold}px)"
                                 )
                             scale_jump = max(
                                 abs(width - p_width) / max(1, p_width),
                                 abs(height - p_height) / max(1, p_height),
                             )
                             max_scale_jump = max(max_scale_jump, scale_jump)
+                            info["scale_jump_ratio"] = round(scale_jump, 4)
                             if scale_jump > motion_scale_ratio:
                                 warnings.append(
                                     f"{state} frame {col + 1} scale jump is {scale_jump:.2f} from frame {col} "
                                     f"(threshold {motion_scale_ratio:.2f})"
                                 )
                         prev = (baseline, width, height)
+                    else:
+                        prev = None
 
             if row_baselines:
                 motion[state] = {
@@ -155,6 +163,7 @@ def validate_atlas(
         "motion_thresholds": {
             "baseline_jump_px": motion_baseline_jump_px,
             "scale_jump_ratio": motion_scale_ratio,
+            "jumping_baseline_jump_px": motion_jumping_baseline_px,
         },
     }
 

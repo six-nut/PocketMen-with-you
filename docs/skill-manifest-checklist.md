@@ -1,38 +1,73 @@
-# PocketMen-with-you 可安装 Codex Skill 清单评估（轻量）
+# Codex plugin packaging decision
 
-目标：先确认是否值得以“可安装 Skill 包”发布，而不改变现有本地优先流程。
+Date: 2026-09-15. Maintainer: six-nut. Design investigation for #5.
 
-## 0. 结论位（先填）
-- 结论（PASS / BLOCK / DEFER）：
-- 决策时间窗：2026-09-07（更新）
-- 负责人：`six-nut`
+## Decision
 
-## 1. 结构与清单
-- [ ] 明确 Skill 包入口（命令/接口）：CLI 与 `skill.json` 约定是否已统一。
-- [ ] 包内是否只保留可执行内容（无测试镜像、无私有参考图、无本地临时目录）。
-- [ ] 与现有运行目录分离：`scripts/` 与打包文件不互相污染。
-- [ ] 产物最小化：`pet.json` + `spritesheet.webp` + 必要运行文档。
+Defer plugin distribution; retain the existing Skill and Python CLI for v0.3.
+A plugin could improve discovery and versioned installation, but does not replace
+Python runtime or GPU/model setup. Ship only after the three follow-ups below pass.
+This is a proposed design, not an already available plugin.
 
-## 2. 隐私与安全边界（必须通过）
-- [ ] 不在包内持久化用户参考图、prompt 日志或凭证。
-- [ ] 安装/卸载不触发外部网络请求（除明确配置）。
-- [ ] 安装路径校验禁止路径穿越，失败场景可回滚。
-- [ ] 输出不含 secret、token、原始 HTTP 头等敏感字段。
+The issue's original hatch-pet/imagegen delegation proposal is superseded by the
+v0.3 architecture and AGENTS.md: use the bundled local engine, default
+FLUX.2-klein-4B, optional Qwen-Image-Edit-2511, and deterministic fallback.
+Normal generation remains independent of OPENAI_API_KEY.
 
-## 3. 兼容性与回退能力
-- [ ] 兼容当前 `openai` 无需场景（默认保持 `api_key_required=false`）。
-- [ ] 兼容既有离线 fallback（无 GPU 时仍可生成可安装包）。
-- [ ] 包内依赖与模型加载遵循版本锁定策略，支持无网络回退到确定性模式。
-- [ ] 与现有发布流程兼容（`pypi`、Release notes、`run-summary`）。
+## Proposed layout
 
-## 4. 维护与回归
-- [ ] 安装前后执行 `validate` 与 `atlas` QA。
-- [ ] 增加打包链路验证脚本（至少 1 条自动化检查）。
-- [ ] 更新 `README`，说明安装/卸载和升级方式。
-- [ ] 增加周更发布风险记录（Issue/PR 责任人）。
+```text
+pocketmen-with-you/
+  .codex-plugin/plugin.json
+  skills/pocketmen-with-you/
+    SKILL.md
+    scripts/
+    references/
+    runtime/pocketmen/
+  LICENSE
+  NOTICE.md
+```
 
-## 5. 下一步任务拆解（如通过）
-- [ ] 在 `scripts/` 输出 `skill-manifest`/`skill-entry` 模板。
-- [ ] 增加 `skill` 打包命令（dry-run + 实际打包）。
-- [ ] 增加安装后自检（验证 `pet.json` + `spritesheet.webp`）。
-- [ ] 形成一条独立 PR：`chore: add codex skill manifest + install path`。
+The manifest is `.codex-plugin/plugin.json`, not `skill.json`. Its name is
+`pocketmen-with-you`, version matches the Python release, author.name is `six-nut`,
+license is MIT, and skills points to `./skills/`. Add the description and interface
+metadata required by the target Codex validator. No MCP servers, connected apps
+or install-time command hooks are needed.
+
+Build from an explicit allowlist of tracked code and documentation. Generated
+`pet.json` and `spritesheet.webp` are user outputs, not plugin files. Exclude
+personal references, generated pets, prompts/logs, .venv, .env, credentials,
+local Codex configuration and model caches. Reject symlinks and escaping paths;
+Git ignore rules alone are not a packaging boundary.
+
+## Lifecycle and tradeoffs
+
+Keep dependency setup explicit and isolated. Core setup must not download neural
+weights; document optional dependency/model downloads separately. Installing a
+plugin must not automatically generate or install a pet. The current skill
+installer replaces its destination and lacks transactional rollback; it cannot
+be reused unchanged for this lifecycle.
+
+Stage and validate upgrades before activation, retain the previous version and
+runtime for rollback, and preserve user pets and external model caches. Match
+plugin/Python versions to a Git tag; test activation through the Codex plugin
+manager in a temporary profile. No published PyPI package is assumed.
+
+Discovery and managed versions are useful, but another archive, runtime lifecycle
+and client compatibility surface add maintenance and supply-chain work. Keep
+one canonical runtime and derive the bundled skill copy during packaging.
+
+## Independently reviewable follow-ups
+
+1. **Builder/manifest:** implement the allowlisted archive builder; build twice
+   from a clean checkout and compare member names and bytes. Run Codex's plugin
+   validator; test rejection of private files, symlinks and escaping paths.
+2. **Runtime lifecycle:** implement staging, version matching and rollback;
+   test failed dependency setup and existing-install preservation in a temporary
+   profile, with no changes to real user pets.
+3. **Distribution acceptance:** run full pytest, Ruff, runtime/skill parity and
+   no-key deterministic generation/package checks. Verify discovery in the app
+   and document tested Codex versions before publishing a marketplace entry.
+
+The build and test path is deterministic and offline with installed core
+dependencies; app discovery remains a separate recorded acceptance check.
