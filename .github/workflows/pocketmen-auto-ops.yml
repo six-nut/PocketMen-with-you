@@ -174,9 +174,9 @@ jobs:
               "- 7d 关闭 Issue：{{CLOSED_ISSUES_7D}}",
               "- 7d 关闭 PR：{{CLOSED_PRS_7D}}",
               "",
-              "### 近7日完成率摘要",
-              "- 完成率：{{SEVEN_DAY_COMPLETION_RATE}}",
-              "- 近7天关闭/新增总计：{{WEEK_CLOSED_VS_NEW}}",
+              "### 近7日处理情况",
+              "- 近7日关闭 Issue / PR：{{CLOSED_ISSUES_7D}} / {{CLOSED_PRS_7D}}",
+              "- 近7日新增项中当前已关闭：{{SEVEN_DAY_COHORT_RESOLUTION}}",
               "",
               "### CI 与质量",
               "- CI 状态：{{CI_STATUS}}",
@@ -241,8 +241,13 @@ jobs:
                 return Number(res.data.total_count || 0);
               } catch (error) {
                 core.warning(`queryCount failed for: ${q} -> ${error.message}`);
-                return 0;
+                return null;
               }
+            }
+
+            async function queryItems(q, maxItems = 1000) {
+              const items = await github.paginate(github.rest.search.issuesAndPullRequests, { q });
+              return items.slice(0, maxItems);
             }
 
             async function querySearchItems(q, maxItems = 20) {
@@ -283,6 +288,27 @@ jobs:
               }
             }
 
+            async function archiveOlderOpenIssues(label, titlePrefix) {
+              const older = await queryItems(
+                `repo:${owner}/${repo} is:issue is:open label:${label} created:<${titleDate}`
+              );
+              for (const item of older.filter((issue) => issue.title.startsWith(titlePrefix))) {
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: item.number,
+                  body: "This dated checklist has expired and is being archived as the current cycle replaces it. Closing it does not assert that the listed tasks were completed. Please record links or other evidence before marking external work complete."
+                });
+                await github.rest.issues.update({
+                  owner,
+                  repo,
+                  issue_number: item.number,
+                  state: "closed",
+                  state_reason: "not_planned"
+                });
+              }
+            }
+
             async function buildReport() {
               const repoInfo = (await github.request("GET /repos/{owner}/{repo}", { owner, repo })).data;
               const openIssues = await queryCount(`repo:${owner}/${repo} is:issue is:open`);
@@ -293,10 +319,13 @@ jobs:
               const newPRs7d = await queryCount(`repo:${owner}/${repo} is:pr created:>${sevenDaysAgoDate}`);
               const closedIssues7d = await queryCount(`repo:${owner}/${repo} is:issue is:closed closed:>${sevenDaysAgoDate}`);
               const closedPRs7d = await queryCount(`repo:${owner}/${repo} is:pr is:closed closed:>${sevenDaysAgoDate}`);
-              const createdIn7d = newIssues7d + newPRs7d;
-              const closedIn7d = closedIssues7d + closedPRs7d;
-              const completionRate = createdIn7d > 0 ? `${((closedIn7d / createdIn7d) * 100).toFixed(1)}% (${closedIn7d}/${createdIn7d})` : "N/A（近7天新增 0 项）";
-              const weekClosedVsNew = `${closedIn7d}/${createdIn7d}`;
+              const createdIssues = await queryItems(`repo:${owner}/${repo} is:issue created:>${sevenDaysAgoDate}`);
+              const createdPRs = await queryItems(`repo:${owner}/${repo} is:pr created:>${sevenDaysAgoDate}`);
+              const cohort = [...createdIssues, ...createdPRs];
+              const cohortClosed = cohort.filter((item) => item.state === "closed").length;
+              const cohortResolution = cohort.length > 0
+                ? `${cohortClosed}/${cohort.length} (${((cohortClosed / cohort.length) * 100).toFixed(1)}%)`
+                : "N/A（近7天无新增项）";
               const issueCandidates = await querySearchItems(`repo:${owner}/${repo} is:issue is:open -label:automated-maintenance sort:updated-desc`, 8);
               const prCandidates = await querySearchItems(`repo:${owner}/${repo} is:pr is:open -label:automated-maintenance sort:updated-desc`, 8);
               const candidateTasks = [...issueCandidates, ...prCandidates].filter((item, idx, arr) =>
@@ -325,16 +354,15 @@ jobs:
               return weeklyReportTemplate
                 .replaceAll("{{STARS}}", markdownEscape(repoInfo.stargazers_count))
                 .replaceAll("{{FORKS}}", markdownEscape(repoInfo.forks_count))
-                .replaceAll("{{OPEN_ISSUES}}", markdownEscape(openIssues))
-                .replaceAll("{{OPEN_PRS}}", markdownEscape(openPRs))
-                .replaceAll("{{NEW_ISSUES_24H}}", markdownEscape(newIssues24h))
-                .replaceAll("{{NEW_PRS_24H}}", markdownEscape(newPRs24h))
-                .replaceAll("{{NEW_ISSUES_7D}}", markdownEscape(newIssues7d))
-                .replaceAll("{{NEW_PRS_7D}}", markdownEscape(newPRs7d))
-                .replaceAll("{{CLOSED_ISSUES_7D}}", markdownEscape(closedIssues7d))
-                .replaceAll("{{CLOSED_PRS_7D}}", markdownEscape(closedPRs7d))
-                .replaceAll("{{SEVEN_DAY_COMPLETION_RATE}}", markdownEscape(completionRate))
-                .replaceAll("{{WEEK_CLOSED_VS_NEW}}", markdownEscape(weekClosedVsNew))
+                .replaceAll("{{OPEN_ISSUES}}", markdownEscape(openIssues ?? "Unavailable"))
+                .replaceAll("{{OPEN_PRS}}", markdownEscape(openPRs ?? "Unavailable"))
+                .replaceAll("{{NEW_ISSUES_24H}}", markdownEscape(newIssues24h ?? "Unavailable"))
+                .replaceAll("{{NEW_PRS_24H}}", markdownEscape(newPRs24h ?? "Unavailable"))
+                .replaceAll("{{NEW_ISSUES_7D}}", markdownEscape(newIssues7d ?? "Unavailable"))
+                .replaceAll("{{NEW_PRS_7D}}", markdownEscape(newPRs7d ?? "Unavailable"))
+                .replaceAll("{{CLOSED_ISSUES_7D}}", markdownEscape(closedIssues7d ?? "Unavailable"))
+                .replaceAll("{{CLOSED_PRS_7D}}", markdownEscape(closedPRs7d ?? "Unavailable"))
+                .replaceAll("{{SEVEN_DAY_COHORT_RESOLUTION}}", markdownEscape(cohortResolution))
                 .replaceAll("{{CI_STATUS}}", markdownEscape(ciStatus))
                 .replaceAll("{{QUALITY_NOTES}}", "待补充")
                 .replaceAll("{{FOLLOWUP_DONE_24H}}", "待补充")
@@ -357,6 +385,7 @@ jobs:
             await ensureLabel(labels.report, "6A1B9A", "周期运营报表");
 
             if (modes.includes("followup") && !(await issueExistsByTitle(followupTitle))) {
+              await archiveOlderOpenIssues(labels.followup24h, "PocketMen 24h 评论更新 ");
               const created = await createIssue(
                 followupTitle,
                 `${followupBody}\n\n> 时间戳：${nowTs}`,
@@ -368,6 +397,7 @@ jobs:
             }
 
             if (modes.includes("maintenance") && !(await issueExistsByTitle(maintenanceTitle))) {
+              await archiveOlderOpenIssues(labels.maintenance, "PocketMen 自动推进 · 例行维护 ");
               const created = await createIssue(
                 maintenanceTitle,
                 `${maintenanceBody}\n\n> 时间戳：${nowTs}`,
@@ -380,6 +410,7 @@ jobs:
 
             if (modes.includes("report")) {
               if (!(await issueExistsByTitle(reportTitle))) {
+                await archiveOlderOpenIssues(labels.report, "PocketMen 周期报表 ");
                 const reportBody = await buildReport();
                 const created = await createIssue(
                   reportTitle,
@@ -393,6 +424,7 @@ jobs:
             }
 
             if (modes.includes("promo") && !(await issueExistsByTitle(promoTitle))) {
+              await archiveOlderOpenIssues(labels.promo, "PocketMen 社区宣发推进 ");
               const created = await createIssue(
                 promoTitle,
                 `${promotionBody}\n\n> 时间戳：${nowTs}`,
